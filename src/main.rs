@@ -6,35 +6,34 @@ use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 use zip::ZipArchive;
 
-const TMP_DIR: &'static str = "./temp/";
-
-fn main() -> Result<(), Box<dyn error::Error>> {
-    let target_dir = load_env();
-    rm_tmp_dir();
-    prepare_subs()?;
-
-    Ok(())
-}
-
-fn load_env() -> String {
+fn load_env() -> (String, String) {
     dotenv::dotenv()
         .expect("Unable to finde \".env\" file");
 
     let target_dir = env::var("TARGET_DIR")
         .expect("TARGET_DIR must be set");
-    target_dir
+    let temp_dir = env::var("TEMP_DIR").unwrap_or(String::from("temp/"));
+    (target_dir, temp_dir)
 }
 
-fn prepare_subs() -> Result<(), Box<dyn error::Error>> {
+fn main() -> Result<(), Box<dyn error::Error>> {
+    let (target_dir, temp_dir) = load_env();
+    rm_tmp_dir(&temp_dir);
+    prepare_subs(&temp_dir)?;
+
+    Ok(())
+}
+
+fn prepare_subs(temp_dir: &str) -> Result<(), Box<dyn error::Error>> {
     let root = Path::new("./");
-    let tmp_dir_root = Path::new(TMP_DIR);
-    generate_root(root)?;
+    let tmp_dir_root = Path::new(temp_dir);
+    generate_root(root, temp_dir)?;
     unzip_r(&tmp_dir_root)?;
 
     Ok(())
 }
 
-fn generate_root(dir: &Path) -> Result<(), Box<dyn error::Error>> {
+fn generate_root(dir: &Path, temp_dir: &str) -> Result<(), Box<dyn error::Error>> {
     let mut zip_file = None;
 
     for entry in WalkDir::new(dir) {
@@ -51,7 +50,7 @@ fn generate_root(dir: &Path) -> Result<(), Box<dyn error::Error>> {
     }
 
     let zip_file = zip_file.ok_or("No zip files found!")?;
-    fs::create_dir_all(TMP_DIR)?;
+    fs::create_dir_all(temp_dir)?;
 
     // TODO remove duplication
     let file = File::open(&zip_file)?;
@@ -59,8 +58,8 @@ fn generate_root(dir: &Path) -> Result<(), Box<dyn error::Error>> {
 
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)?;
-        let out_path = Path::new(TMP_DIR).join(file.enclosed_name()
-                                                   .expect("Unable to get sanitized name!"));
+        let out_path = Path::new(temp_dir).join(file.enclosed_name()
+                                                    .expect("Unable to get sanitized name!"));
 
         if (&*file.name()).ends_with("/") {
             fs::create_dir_all(&out_path)?;
@@ -71,7 +70,7 @@ fn generate_root(dir: &Path) -> Result<(), Box<dyn error::Error>> {
             if !p.exists() { fs::create_dir_all(&p)?; }
         }
 
-        let mut out_file = fs::File::create(&out_path)?;
+        let mut out_file = File::create(&out_path)?;
         io::copy(&mut file, &mut out_file)?;
     }
 
@@ -166,12 +165,12 @@ fn unzip(dir: &Path) -> Result<Vec<PathBuf>, Box<dyn error::Error>> {
             if s.contains("__MACOSX") { unzipped_files.push(full_out_path) }
         }
     }
-    
+
     fs::remove_file(dir)?;
 
     Ok(unzipped_files)
 }
 
-fn rm_tmp_dir() {
-    let _ = fs::remove_dir_all(TMP_DIR);
+fn rm_tmp_dir(temp_dir: &str) {
+    let _ = fs::remove_dir_all(temp_dir);
 }
