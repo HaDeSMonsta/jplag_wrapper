@@ -1,4 +1,4 @@
-use std::{env, error};
+use std::{env, error, fs};
 
 fn main() -> Result<(), Box<dyn error::Error>> {
     let target_dir = load_env();
@@ -16,5 +16,9 @@ fn load_env() -> String {
 }
 
 fn prepare_subs() {
-    todo!()
+    let current =fs::read_dir("./");
+}
+
+fn unzip_r(root: &str) {
+    
 }

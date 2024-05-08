@@ -6,3 +6,5 @@ edition = "2021"
 [dependencies]
 logger_utc = "0.1.11"
 dotenv = "0.15.0"
+zip = "1.2.1"
+walkdir = "2.5.0"
