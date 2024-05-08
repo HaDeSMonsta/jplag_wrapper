@@ -1,7 +1,7 @@
 use std::{env, error, fs, io};
 use std::ffi::OsStr;
 use std::fs::File;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use walkdir::WalkDir;
 use zip::ZipArchive;
@@ -26,7 +26,6 @@ fn load_env() -> String {
 }
 
 fn prepare_subs() -> Result<(), Box<dyn error::Error>> {
-
     let root = Path::new("./");
     let tmp_dir_root = Path::new(TMP_DIR);
     generate_root(root)?;
@@ -36,63 +35,77 @@ fn prepare_subs() -> Result<(), Box<dyn error::Error>> {
 }
 
 fn generate_root(dir: &Path) -> Result<(), Box<dyn error::Error>> {
-    
     let mut zip_file = None;
-    
+
     for entry in WalkDir::new(dir) {
         let entry = entry?;
         if entry.path().extension() == Some(OsStr::new("zip")) {
-            if zip_file.is_some() { 
+            if zip_file.is_some() {
                 return Err(Box::new(io::Error::new(
                     io::ErrorKind::Other,
-                    "Multiple zip files found!"
+                    "Multiple zip files found!",
                 )));
             }
             zip_file = Some(entry.path().to_path_buf());
         }
     }
-    
+
     let zip_file = zip_file.ok_or("No zip files found!")?;
     fs::create_dir_all(TMP_DIR)?;
-    
+
     // TODO remove duplication
-    let file = fs::File::open(&zip_file)?;
+    let file = File::open(&zip_file)?;
     let mut archive = ZipArchive::new(file)?;
-    
+
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)?;
         let out_path = Path::new(TMP_DIR).join(file.enclosed_name()
-            .expect("Unable to get sanitized name!"));
-        
+                                                   .expect("Unable to get sanitized name!"));
+
         if (&*file.name()).ends_with("/") {
             fs::create_dir_all(&out_path)?;
             continue;
         }
-        
+
         if let Some(p) = out_path.parent() {
-            if !p.exists() {fs::create_dir_all(&p)?;}
+            if !p.exists() { fs::create_dir_all(&p)?; }
         }
 
-            let mut out_file = fs::File::create(&out_path)?;
-            io::copy(&mut file, &mut out_file)?;
+        let mut out_file = fs::File::create(&out_path)?;
+        io::copy(&mut file, &mut out_file)?;
     }
-    
-    
+
+
     Ok(())
 }
 
 fn unzip_r(dir: &Path) -> Result<(), Box<dyn error::Error>> {
-    for entry in WalkDir::new(dir) {
+    let mut paths = vec![dir.to_path_buf()];
+    
+    let zip_extension = Some(OsStr::new("zip"));
+    
+    for entry in WalkDir::new(&dir) {
         let entry = entry?;
-        if entry.path().extension() == Some(OsStr::new("zip")) {
-            unzip(entry.path())?;
-            unzip_r(entry.path())?;
+        if entry.path().extension() == zip_extension {
+            paths.push(entry.into_path());
         }
+    }
+    
+    while !paths.is_empty() {
+        let new_paths = unzip(
+            paths
+                .pop()
+                .unwrap()
+                .as_path()
+        )?;
+        paths.extend(new_paths);
     }
     Ok(())
 }
 
-fn unzip(dir: &Path) -> Result<(), Box<dyn error::Error>> {
+fn unzip(dir: &Path) -> Result<Vec<PathBuf>, Box<dyn error::Error>> {
+    let mut unzipped_files = vec![];
+    let zip_extension = Some(OsStr::new("zip"));
 
     let file = File::open(dir)?;
     let mut archive = ZipArchive::new(file)?;
@@ -102,9 +115,9 @@ fn unzip(dir: &Path) -> Result<(), Box<dyn error::Error>> {
         let mut file = archive.by_index(i)?;
 
         let out_path = file.enclosed_name()
-            .expect("Unable to get sanitized name!");
-        
-        let full_out_path = parent_dir.join(out_path);
+                           .expect("Unable to get sanitized name!");
+
+        let full_out_path = parent_dir.join(&out_path);
 
         if (&*file.name()).ends_with("/") {
             fs::create_dir_all(&full_out_path)?;
@@ -112,13 +125,17 @@ fn unzip(dir: &Path) -> Result<(), Box<dyn error::Error>> {
         }
 
         if let Some(p) = full_out_path.parent() {
-            if !p.exists() {fs::create_dir_all(p)?;}
+            if !p.exists() { fs::create_dir_all(p)?; }
         }
-        let mut out_file = fs::File::create(&full_out_path)?;
+        let mut out_file = File::create(&full_out_path)?;
         io::copy(&mut file, &mut out_file)?;
+
+        if full_out_path.extension() == zip_extension {
+            unzipped_files.push(full_out_path);
+        }
     }
 
-    Ok(())
+    Ok(unzipped_files)
 }
 
 fn rm_tmp_dir() {
