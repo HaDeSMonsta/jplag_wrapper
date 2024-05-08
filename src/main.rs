@@ -80,17 +80,17 @@ fn generate_root(dir: &Path) -> Result<(), Box<dyn error::Error>> {
 }
 
 fn unzip_r(dir: &Path) -> Result<(), Box<dyn error::Error>> {
-    let mut paths = vec![dir.to_path_buf()];
-    
+    let mut paths = vec![];
+
     let zip_extension = Some(OsStr::new("zip"));
-    
+
     for entry in WalkDir::new(&dir) {
         let entry = entry?;
         if entry.path().extension() == zip_extension {
             paths.push(entry.into_path());
         }
     }
-    
+
     while !paths.is_empty() {
         let new_paths = unzip(
             paths
@@ -107,8 +107,32 @@ fn unzip(dir: &Path) -> Result<Vec<PathBuf>, Box<dyn error::Error>> {
     let mut unzipped_files = vec![];
     let zip_extension = Some(OsStr::new("zip"));
 
+    // Handle MacOS
+    if let Some(path_str) = dir.to_str() {
+        let target = "MACOSX";
+        if path_str.contains(target) {
+            let macos_idx = path_str.find(target).unwrap();
+            let macos_path_slice = &path_str[..macos_idx + target.len()];
+
+            let macos_path = Path::new(macos_path_slice);
+
+            if !macos_path.exists() { return Ok(vec![]); }
+            if let Err(e) = fs::remove_dir_all(&macos_path) {
+                panic!("Unable to remove MacOS-Path: {macos_path:?} with err {e}\n\
+                Original path was: {dir:?}");
+            }
+            return Ok(vec![]);
+        }
+    }
+
     let file = File::open(dir)?;
-    let mut archive = ZipArchive::new(file)?;
+    let mut archive = match ZipArchive::new(file) {
+        Ok(a) => a,
+        Err(e) => {
+            eprintln!("Unable to extract {dir:?}: {e}");
+            return Ok(vec![]);
+        }
+    };
     let parent_dir = dir.parent().expect("No parent dir (how?)");
 
     for i in 0..archive.len() {
