@@ -154,10 +154,20 @@ fn unzip(dir: &Path) -> Result<Vec<PathBuf>, Box<dyn error::Error>> {
         let mut out_file = File::create(&full_out_path)?;
         io::copy(&mut file, &mut out_file)?;
 
+        // Add to queue
         if full_out_path.extension() == zip_extension {
+            // Skip Prog1Tools (and stuff like Prog1Tools (1).zip
+            if let Some(p) = full_out_path.to_str() {
+                if p.to_lowercase().contains("prog1tools") { continue; }
+            }
             unzipped_files.push(full_out_path);
+        } else if let Some(s) = full_out_path.to_str() {
+            // Make sure to later remove all __MACOSX
+            if s.contains("__MACOSX") { unzipped_files.push(full_out_path) }
         }
     }
+    
+    fs::remove_file(dir)?;
 
     Ok(unzipped_files)
 }
