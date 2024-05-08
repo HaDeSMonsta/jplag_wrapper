@@ -20,6 +20,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     let (target_dir, temp_dir) = load_env();
     rm_tmp_dir(&temp_dir);
     prepare_subs(&temp_dir)?;
+    
+    run(&target_dir)?;
+    
+    rm_tmp_dir(&temp_dir);
 
     Ok(())
 }
@@ -173,4 +177,8 @@ fn unzip(dir: &Path) -> Result<Vec<PathBuf>, Box<dyn error::Error>> {
 
 fn rm_tmp_dir(temp_dir: &str) {
     let _ = fs::remove_dir_all(temp_dir);
+}
+
+fn run(target_dir: &str) -> Result<(), Box<dyn error::Error>> {
+    todo!()
 }
