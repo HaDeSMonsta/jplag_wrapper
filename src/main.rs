@@ -96,22 +96,25 @@ fn unzip(dir: &Path) -> Result<(), Box<dyn error::Error>> {
 
     let file = File::open(dir)?;
     let mut archive = ZipArchive::new(file)?;
+    let parent_dir = dir.parent().expect("No parent dir (how?)");
 
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)?;
 
         let out_path = file.enclosed_name()
             .expect("Unable to get sanitized name!");
+        
+        let full_out_path = parent_dir.join(out_path);
 
         if (&*file.name()).ends_with("/") {
-            fs::create_dir_all(out_path)?;
+            fs::create_dir_all(&full_out_path)?;
             continue;
         }
 
-        if let Some(p) = out_path.parent() {
+        if let Some(p) = full_out_path.parent() {
             if !p.exists() {fs::create_dir_all(p)?;}
         }
-        let mut out_file = fs::File::create(&out_path)?;
+        let mut out_file = fs::File::create(&full_out_path)?;
         io::copy(&mut file, &mut out_file)?;
     }
 
