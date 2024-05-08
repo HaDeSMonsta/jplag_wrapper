@@ -1,7 +1,8 @@
-use std::{env, error, fs, io};
+use std::{env, error, fs, io, thread};
 use std::ffi::OsStr;
 use std::fs::File;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use walkdir::WalkDir;
 use zip::ZipArchive;
@@ -20,9 +21,9 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     let (target_dir, temp_dir) = load_env();
     rm_tmp_dir(&temp_dir);
     prepare_subs(&temp_dir)?;
-    
+
     run(&target_dir)?;
-    
+
     rm_tmp_dir(&temp_dir);
 
     Ok(())
@@ -180,5 +181,14 @@ fn rm_tmp_dir(temp_dir: &str) {
 }
 
 fn run(target_dir: &str) -> Result<(), Box<dyn error::Error>> {
-    todo!()
+    let target_str = String::from(target_dir);
+
+    thread::spawn(move || {
+       Command::new("java")
+           .args(["-jar", ""])
+           .spawn()
+           .unwrap();
+    });
+
+    Ok(())
 }
