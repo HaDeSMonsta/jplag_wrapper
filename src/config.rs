@@ -65,6 +65,7 @@ struct Config {
     tmp_dir: Option<String>,
 }
 
+#[cfg(not(debug_assertions))]
 pub fn get_log_level() -> Level {
     if ARGS.debug {
         Level::DEBUG

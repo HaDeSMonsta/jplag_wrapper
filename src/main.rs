@@ -4,12 +4,16 @@ mod helper;
 use std::fmt::Debug;
 use std::fs;
 use std::path::Path;
+use std::process::exit;
 use anyhow::{Context, Result};
-use tracing::debug;
+use tracing::{debug, info, Level};
 use tracing_subscriber::FmtSubscriber;
 
 fn main() -> Result<()> {
+    #[cfg(not(debug_assertions))]
     let log_level = config::get_log_level();
+    #[cfg(debug_assertions)]
+    let log_level = Level::DEBUG;
     let subscriber = FmtSubscriber::builder()
         .with_max_level(log_level)
         .finish();
@@ -19,9 +23,19 @@ fn main() -> Result<()> {
 
     let (source_file, temp_dir, result_dir) = config::parse_args()
         .with_context(|| "Unable to parse args")?;
+    debug!("Full config: source_file={source_file}, temp_dir={temp_dir}, results_dir={result_dir}");
 
-    init(&source_file, &temp_dir, result_dir)
+    info!("Initializing project");
+    init(&source_file, &result_dir, &temp_dir)
         .with_context(|| "Initialization failed")?;
+
+    info!("Running jplag");
+    run(&result_dir, &temp_dir)
+        .with_context(|| "Running jplag failed")?;
+
+    info!("Cleaning up");
+    cleanup(&temp_dir)
+        .with_context(|| "Cleanup failed")?;
 
     Ok(())
 }
