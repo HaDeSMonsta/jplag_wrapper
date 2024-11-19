@@ -6,25 +6,49 @@ use std::process::exit;
 use anyhow::{Context, Result};
 use clap::Parser;
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info, Level};
+use tracing::{debug, info};
+#[cfg(not(debug_assertions))]
+use tracing::Level;
 
 const ARGS: LazyCell<Args> = LazyCell::new(|| Args::parse());
 const DEFAULT_CONFIG_FILE: &str = "config.toml";
 const DEFAULT_SOURCE_FILE: &str = "submissions.zip";
+const DEFAULT_JPLAG_FILE: &str = "jplag.jar";
 const DEFAULT_TARGET_DIR: &str = "out/";
 const DEFAULT_TMP_DIR: &str = "tmp/";
 
 
-/// TODO Lol
+/// A jplag wrapper with sane defaults
+///
+/// Option priority is as follows
+///
+/// `cli-arg -> toml config -> default value`
+///
+/// While `--init` creates a toml file with all settings,
+/// you only need to se the ones you want to change
 #[derive(Clone, Debug, Parser)]
-#[clap(author, version, about, long_about = None)]
+#[clap(
+    version,
+    about = "A jplag wrapper with sane defaults",
+    long_about = "A jplag wrapper with sane defaults\n\n\
+    Option priority is as follows\n\n\
+    `cli-arg -> toml config -> default value`\n\n\
+    While `--init` creates a toml file with all settings,\n\
+    you only need to set the ones you want to change"
+)]
 struct Args {
     /// Initialize the config,
-    /// will create or override(!) `config.toml`
-    /// and fill it with the default values
+    /// will create (or override!) `config.toml`
+    /// and fill it with default values
     #[clap(short, long)]
     init: bool,
+    /// Set to use log level `debug`
+    ///
+    /// Otherwise, `info` will be used
+    #[clap(short, long)]
+    debug: bool,
     /// Specify the config toml file to look for
+    /// if you don't want to use the default config.toml
     ///
     /// Will panic, if file does not exist
     #[clap(short, long)]
@@ -33,36 +57,45 @@ struct Args {
     ///
     /// Defaults to `submissions.zip`
     #[clap(short, long)]
-    source: Option<String>,
+    source_zip: Option<String>,
     /// Where to put the results
     ///
     /// Defaults to `out/`
     ///
-    /// Warning, this directory will be deleted at application start, if it exists
+    /// Warning: This directory will be deleted at application start, if it exists
     #[clap(short, long)]
     target_dir: Option<String>,
     /// Where to put the temporary files
     ///
     /// Defaults to `tmp/`
     ///
-    /// Warning, this directory will be deleted at application start, if it exists
+    /// Warning: This directory will be deleted at application start, if it exists
     #[clap(long)]
     tmp_dir: Option<String>,
-    /// Set to use log level `debug`
+    /// Where the jplag jar can be found
     ///
-    /// Otherwise, `info` will be used
-    #[clap(short, long)]
-    debug: bool,
-    _remaining: Vec<String>,
+    /// Defaults to `jplag.jar`
+    jplag_jar: Option<String>,
+    /// Everything else before `--`
+    ///
+    /// Will be ignored
+    ignored: Vec<String>,
+    /// Everything after `--`
+    ///
+    /// Will be passed directly to jplag as arguments
+    ///
+    /// Defaults to `-s {{tmp_dir}} -r {{target_dir}} -l java19`
     #[clap(last = true)]
-    _ignored: Vec<String>,
+    jplag_args: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Config {
-    source: Option<String>,
+    source_zip: Option<String>,
     target_dir: Option<String>,
     tmp_dir: Option<String>,
+    jplag_jar: Option<String>,
+    jplag_args: Vec<String>,
 }
 
 #[cfg(not(debug_assertions))]
@@ -76,8 +109,8 @@ pub fn get_log_level() -> Level {
 
 /// Parse args for the bin, prioritizes cli over toml
 ///
-/// Returns: (source, tmp_dir, target_dir)
-pub fn parse_args() -> Result<(String, String, String)> {
+/// Returns: (source, tmp_dir, target_dir, jplag_jar, jplag_args)
+pub fn parse_args() -> Result<(String, String, String, String, Vec<String>)> {
     debug!("Getting args");
     let args = ARGS.clone();
     if args.init {
@@ -86,15 +119,15 @@ pub fn parse_args() -> Result<(String, String, String)> {
             .with_context(|| "Unable to write default config")?;
     };
 
-    let config = parse_toml(
+    let mut config = parse_toml(
         &args.config.unwrap_or_else(|| DEFAULT_CONFIG_FILE.to_string()),
     ).with_context(|| "Unable to parse toml config")?;
 
     debug!("Successfully parsed toml");
 
-    let source = args.source
+    let source = args.source_zip
                      .unwrap_or_else(|| {
-                         config.source
+                         config.source_zip
                                .unwrap_or_else(|| DEFAULT_SOURCE_FILE.to_string())
                      });
 
@@ -116,9 +149,32 @@ pub fn parse_args() -> Result<(String, String, String)> {
 
     debug!("Set target dir to {target_dir}");
 
+    let jplag_jar = args.jplag_jar
+                        .unwrap_or_else(|| {
+                            config.jplag_jar
+                                  .unwrap_or_else(|| DEFAULT_JPLAG_FILE.to_string())
+                        });
+
+    let mut jplag_args = args.jplag_args;
+    if jplag_args.is_empty() {
+        jplag_args.append(&mut config.jplag_args);
+        if jplag_args.is_empty() {
+            jplag_args.append(&mut vec![
+                String::from("-s"),
+                tmp_dir.clone(),
+                String::from("-r"),
+                target_dir.clone(),
+                String::from("-l"),
+                String::from("java19"),
+            ]);
+        }
+    }
+
+    debug!("Set jplag args to {jplag_args:?}");
+
     info!("Successfully parsed config");
 
-    Ok((source, tmp_dir, target_dir))
+    Ok((source, tmp_dir, target_dir, jplag_jar, jplag_args))
 }
 
 fn parse_toml(file: &str) -> Result<Config> {
@@ -131,9 +187,11 @@ fn parse_toml(file: &str) -> Result<Config> {
         }
         debug!("Returning empty config");
         return Ok(Config {
-            source: None,
+            source_zip: None,
             target_dir: None,
             tmp_dir: None,
+            jplag_jar: None,
+            jplag_args: vec![],
         });
     }
     let toml = fs::read_to_string(&file)
@@ -152,9 +210,18 @@ fn parse_toml(file: &str) -> Result<Config> {
 
 fn dump_default_config() -> Result<()> {
     let conf = Config {
-        source: Some(String::from(DEFAULT_SOURCE_FILE)),
+        source_zip: Some(String::from(DEFAULT_SOURCE_FILE)),
         target_dir: Some(String::from(DEFAULT_TARGET_DIR)),
         tmp_dir: Some(String::from(DEFAULT_TMP_DIR)),
+        jplag_jar: Some(String::from(DEFAULT_JPLAG_FILE)),
+        jplag_args: vec![
+            String::from("-s"),
+            String::from(DEFAULT_TMP_DIR),
+            String::from("-r"),
+            String::from(DEFAULT_TARGET_DIR),
+            String::from("-l"),
+            String::from("java19"),
+        ],
     };
     debug!("Created default config struct");
     let file = OpenOptions::new()
@@ -167,8 +234,19 @@ fn dump_default_config() -> Result<()> {
 
     let mut writer = BufWriter::new(file);
 
-    writeln!(writer, "{}", toml::to_string_pretty(&conf)?)
+    let conf_str = toml::to_string_pretty(&conf)
+        .with_context(|| format!("Unable to parse default config (how???) {conf:?}"))?;
+
+    debug!("Writing default config:\
+    \"\"\"\n\
+    {conf_str}\
+    \"\"\"\
+    ");
+
+    writeln!(writer, "{conf_str}")
         .with_context(|| format!("Unable to write default config to {DEFAULT_CONFIG_FILE}"))?;
+    writer.flush()
+          .with_context(|| format!("Unable to flush config file {DEFAULT_CONFIG_FILE}"))?;
 
     info!("Created default config");
 
