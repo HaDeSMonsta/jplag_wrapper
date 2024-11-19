@@ -1,3 +1,4 @@
+use std::cell::LazyCell;
 use std::fs;
 use std::fs::OpenOptions;
 use std::io::{BufWriter, Write};
@@ -5,8 +6,9 @@ use std::process::exit;
 use anyhow::{Context, Result};
 use clap::Parser;
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info};
+use tracing::{debug, info, Level};
 
+const ARGS: LazyCell<Args> = LazyCell::new(|| Args::parse());
 const DEFAULT_CONFIG_FILE: &str = "config.toml";
 const DEFAULT_SOURCE_FILE: &str = "submissions.zip";
 const DEFAULT_TARGET_DIR: &str = "out/";
@@ -14,7 +16,7 @@ const DEFAULT_TMP_DIR: &str = "tmp/";
 
 
 /// TODO Lol
-#[derive(Debug, Parser)]
+#[derive(Clone, Debug, Parser)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
     /// Initialize the config,
@@ -46,6 +48,11 @@ struct Args {
     /// Warning, this directory will be deleted at application start, if it exists
     #[clap(long)]
     tmp_dir: Option<String>,
+    /// Set to use log level `debug`
+    ///
+    /// Otherwise, `info` will be used
+    #[clap(short, long)]
+    debug: bool,
     _remaining: Vec<String>,
     #[clap(last = true)]
     _ignored: Vec<String>,
@@ -58,12 +65,20 @@ struct Config {
     tmp_dir: Option<String>,
 }
 
+pub fn get_log_level() -> Level {
+    if ARGS.debug {
+        Level::DEBUG
+    } else {
+        Level::INFO
+    }
+}
+
 /// Parse args for the bin, prioritizes cli over toml
 ///
 /// Returns: (source, tmp_dir, target_dir)
 pub fn parse_args() -> Result<(String, String, String)> {
-    debug!("Parsing args");
-    let args = Args::parse();
+    debug!("Getting args");
+    let args = ARGS.clone();
     if args.init {
         debug!("Initializing config");
         dump_default_config()

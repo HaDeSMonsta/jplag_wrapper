@@ -5,12 +5,13 @@ use std::fmt::Debug;
 use std::fs;
 use std::path::Path;
 use anyhow::{Context, Result};
-use tracing::{debug, Level};
+use tracing::debug;
 use tracing_subscriber::FmtSubscriber;
 
 fn main() -> Result<()> {
+    let log_level = config::get_log_level();
     let subscriber = FmtSubscriber::builder()
-        .with_max_level(Level::DEBUG)
+        .with_max_level(log_level)
         .finish();
     tracing::subscriber::set_global_default(subscriber)
         .with_context(|| "setting default subscriber failed")?;
