@@ -28,14 +28,19 @@ fn main() -> Result<()> {
         jplag_args,
     ) = config::parse_args()
         .with_context(|| "Unable to parse args")?;
-    debug!("Full config: source_file={source_file}, temp_dir={temp_dir}, results_dir={result_dir}");
+    debug!("Full config: \
+    source_file={source_file}, \
+    temp_dir={temp_dir}, \
+    results_dir={result_dir}, \
+    jplag_jar={jplag_jar}, \
+    jplag_args={jplag_args:?}");
 
     info!("Initializing project");
     init(&source_file, &result_dir, &temp_dir)
         .with_context(|| "Initialization failed")?;
 
     info!("Running jplag");
-    run(&result_dir, &temp_dir)
+    run(&result_dir, &temp_dir, jplag_jar, jplag_args)
         .with_context(|| "Running jplag failed")?;
 
     info!("Cleaning up");
@@ -64,7 +69,7 @@ where
     Ok(())
 }
 
-fn run<P, Q>(result_dir: P, tmp_dir: Q) -> Result<()>
+fn run<P, Q>(result_dir: P, tmp_dir: Q, jplag_jar: String, jplag_args: Vec<String>) -> Result<()>
 where
     P: AsRef<Path>,
     Q: AsRef<Path>,
