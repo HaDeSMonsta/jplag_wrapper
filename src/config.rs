@@ -95,7 +95,7 @@ struct Config {
     target_dir: Option<String>,
     tmp_dir: Option<String>,
     jplag_jar: Option<String>,
-    jplag_args: Vec<String>,
+    jplag_args: Option<Vec<String>>,
 }
 
 #[cfg(not(debug_assertions))]
@@ -157,17 +157,18 @@ pub fn parse_args() -> Result<(String, String, String, String, Vec<String>)> {
 
     let mut jplag_args = args.jplag_args;
     if jplag_args.is_empty() {
-        jplag_args.append(&mut config.jplag_args);
-        if jplag_args.is_empty() {
-            jplag_args.append(&mut vec![
-                String::from("-s"),
-                tmp_dir.clone(),
-                String::from("-r"),
-                target_dir.clone(),
-                String::from("-l"),
-                String::from("java19"),
-            ]);
-        }
+        let mut to_append = config.jplag_args
+                                  .unwrap_or_else(|| {
+                                      vec![
+                                          String::from("-s"),
+                                          tmp_dir.clone(),
+                                          String::from("-r"),
+                                          target_dir.clone(),
+                                          String::from("-l"),
+                                          String::from("java19"),
+                                      ]
+                                  });
+        jplag_args.append(&mut to_append);
     }
 
     debug!("Set jplag args to {jplag_args:?}");
@@ -191,7 +192,7 @@ fn parse_toml(file: &str) -> Result<Config> {
             target_dir: None,
             tmp_dir: None,
             jplag_jar: None,
-            jplag_args: vec![],
+            jplag_args: None,
         });
     }
     let toml = fs::read_to_string(&file)
@@ -201,7 +202,7 @@ fn parse_toml(file: &str) -> Result<Config> {
         toml::from_str::<Config>(&toml)
             .with_context(|| format!(
                 "Unable to parse to Config, raw string:\
-            \n\"\"\"\
+            \n\"\"\"\n\
             {toml}\
             \"\"\"\
             "))?
@@ -214,14 +215,14 @@ fn dump_default_config() -> Result<()> {
         target_dir: Some(String::from(DEFAULT_TARGET_DIR)),
         tmp_dir: Some(String::from(DEFAULT_TMP_DIR)),
         jplag_jar: Some(String::from(DEFAULT_JPLAG_FILE)),
-        jplag_args: vec![
+        jplag_args: Some(vec![
             String::from("-s"),
             String::from(DEFAULT_TMP_DIR),
             String::from("-r"),
             String::from(DEFAULT_TARGET_DIR),
             String::from("-l"),
             String::from("java19"),
-        ],
+        ]),
     };
     debug!("Created default config struct");
     let file = OpenOptions::new()

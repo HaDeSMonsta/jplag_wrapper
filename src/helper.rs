@@ -1,18 +1,23 @@
 use std::{fs, io};
 use std::fmt::Debug;
 use std::fs::OpenOptions;
-use std::io::BufReader;
+use std::io::{BufRead, BufReader};
 use std::path::Path;
 use anyhow::{Context, Result};
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 use zip::ZipArchive;
+
+pub enum IOType {
+    StdOut,
+    StdErr,
+}
 
 pub fn unzip_to<P, Q>(zip: P, dest: Q) -> Result<()>
 where
     P: AsRef<Path> + Debug,
     Q: AsRef<Path>,
 {
-    info!("Unzipping {} to {}", zip.as_ref().display(), dest.as_ref().display());
+    debug!("Unzipping {} to {}", zip.as_ref().display(), dest.as_ref().display());
     let src_file = OpenOptions::new()
         .read(true)
         .open(&zip)
@@ -62,24 +67,20 @@ where
             debug!("IO copied {src} to {out_file:?}", src = file.name());
         }
 
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            use std::fs::{set_permissions, Permissions};
-
-            if let Some(mode) = file.unix_mode() {
-                set_permissions(&out_path, Permissions::from_mode(mode))
-                    .with_context(|| {
-                        format!("Unable to set permissions {mode:o} for path {out_path:?}")
-                    })?;
-                debug!("Set permissions {mode:o} for path {out_path:?}");
-            } else {
-                debug!("No permissions to set");
-            }
-        }
     }
 
-    info!("Processed all files in {zip:?}");
-
     Ok(())
+}
+
+pub fn read_lines<R: BufRead>(reader: R, stream_type: IOType) {
+    for line in reader.lines() {
+        let Ok(line) = line else {
+            warn!("Unable to process line {line:?}");
+            continue;
+        };
+        match stream_type {
+            IOType::StdOut => debug!("{line}"),
+            IOType::StdErr => warn!("{line}"),
+        }
+    }
 }
