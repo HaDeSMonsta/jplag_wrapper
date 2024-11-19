@@ -4,3 +4,4 @@ target/
 tmp/
 out/
 config.toml
+*.log
