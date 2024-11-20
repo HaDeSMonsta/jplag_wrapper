@@ -1,6 +1,6 @@
 mod config;
 mod helper;
-mod custom_error;
+mod custom_errors;
 
 use std::fmt::Debug;
 use std::fs;
@@ -81,13 +81,13 @@ where
     debug!("Checking if source zip file exist");
     if !fs::exists(&source_file)
         .with_context(|| format!("Unable to confirm if {source_file:?} exists"))? {
-        return Err(custom_error::FileNotFoundError::ZipFileNotFound(source_file.into()).into());
+        return Err(custom_errors::FileNotFoundError::ZipFileNotFound(source_file.into()).into());
     }
 
     debug!("Checking if jplag jar file exists");
     if !fs::exists(&jplag_jar)
         .with_context(|| format!("Unable to confirm if \"{jplag_jar}\" exists"))? {
-        return Err(custom_error::FileNotFoundError::JarFileNotFound(jplag_jar.into()).into());
+        return Err(custom_errors::FileNotFoundError::JarFileNotFound(jplag_jar.into()).into());
     }
 
     debug!("Removing result dir");
@@ -127,21 +127,25 @@ where
 
         assert!(student_name_dir_path.is_dir(), "Everything in {tmp_dir:?} should be a dir, found {student_name_dir_path:?}");
 
-        let mut count = 0u8;
+        let mut zip_count = 0u8;
         for zip_entry in fs::read_dir(&student_name_dir_path)? {
             let zip_entry = zip_entry?;
             let zip_file_path = zip_entry.path();
 
-            assert_eq!(count, 0, "Expected to find exactly one file, found more: {:?}", zip_file_path);
-            count += 1;
+            if zip_file_path.extension()
+                            .and_then(|e| e.to_str())
+                            .and_then(|e| Some(e.to_ascii_lowercase()))
+                != Some(String::from("zip")) {
+                continue;
+            }
 
             assert_eq!(
-                Some(String::from("zip")),
-                zip_file_path.extension()
-                             .and_then(|e| e.to_str())
-                             .and_then(|e| Some(e.to_ascii_lowercase())),
-                "Expected to find a zip file, found {:?}", zip_file_path,
+                zip_count,
+                0,
+                "Expected to find exactly one zip file, found more: {:?}",
+                zip_file_path
             );
+            zip_count += 1;
 
             let zip_dir_name = student_name_dir_path.file_name()
                                                     .and_then(|f| f.to_str())
@@ -167,6 +171,11 @@ where
                 .with_context(|| format!("Unable to remove {zip_file_path:?}"))?;
 
             debug!("Removed {zip_file_path:?}");
+        }
+        if zip_count != 1 {
+            return Err(custom_errors::InvalidSubmissionsError::NoZipFileFound(
+                String::from(student_name_dir_path.to_string_lossy())
+            ).into());
         }
     }
 
