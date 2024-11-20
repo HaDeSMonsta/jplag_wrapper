@@ -1,13 +1,15 @@
 mod config;
 mod helper;
+mod custom_error;
 
-use std::fmt::{Debug, Display};
-use std::{fs, thread};
-use std::io::BufReader;
+use std::fmt::Debug;
+use std::fs;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use anyhow::{Context, Result};
-use tracing::{debug, info, warn, Level};
+use tracing::{debug, info, warn};
+#[cfg(debug_assertions)]
+use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 
 fn main() -> Result<()> {
@@ -38,10 +40,10 @@ fn main() -> Result<()> {
     jplag_args={jplag_args:?}");
 
     info!("Initializing project");
-    init(&source_file, &result_dir, &temp_dir)
+    init(&source_file, &result_dir, &temp_dir, &jplag_jar)
         .with_context(|| "Initialization failed")?;
 
-    run(&result_dir, &temp_dir, jplag_jar, jplag_args)
+    run(&result_dir, &temp_dir, &jplag_jar, jplag_args)
         .with_context(|| "Running jplag failed")?;
 
     #[cfg(not(debug_assertions))]
@@ -54,12 +56,24 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn init<P, Q, R>(source_file: P, result_dir: Q, tmp_dir: R) -> Result<()>
+fn init<P, Q, R>(source_file: P, result_dir: Q, tmp_dir: R, jplag_jar: &str) -> Result<()>
 where
-    P: AsRef<Path> + Debug,
+    P: AsRef<Path> + Debug + Into<String>,
     Q: AsRef<Path>,
     R: AsRef<Path> + Debug,
 {
+    debug!("Checking if source zip file exist");
+    if !fs::exists(&source_file)
+        .with_context(|| format!("Unable to confirm if {source_file:?} exists"))? {
+        return Err(custom_error::FileNotFoundError::ZipFileNotFound(source_file.into()).into());
+    }
+
+    debug!("Checking if jplag jar file exists");
+    if !fs::exists(&jplag_jar)
+        .with_context(|| format!("Unable to confirm if \"{jplag_jar}\" exists"))? {
+        return Err(custom_error::FileNotFoundError::JarFileNotFound(jplag_jar.into()).into());
+    }
+
     debug!("Removing result dir");
     let _ = fs::remove_dir_all(&result_dir);
 
@@ -74,7 +88,7 @@ where
     Ok(())
 }
 
-fn run<P>(result_dir: &str, tmp_dir: P, jplag_jar: String, jplag_args: Vec<String>) -> Result<()>
+fn run<P>(result_dir: &str, tmp_dir: P, jplag_jar: &str, jplag_args: Vec<String>) -> Result<()>
 where
     P: AsRef<Path>,
 {
@@ -156,42 +170,20 @@ where
         .stderr(Stdio::piped())
         .spawn()
         .with_context(|| format!("Unable to run jplag command {dbg_cmd}"))?;
-    
-    // TODO Handle output
 
-    let stdout = child.stdout.take().expect("Unable to get stdout from jplag");
-    let stderr = child.stderr.take().expect("Unable to get stderr from jplag");
-
-    let stdout_reader = BufReader::new(stdout);
-    let stderr_reader = BufReader::new(stderr);
-
-    let stdout_handle = thread::spawn(move || {
-        helper::read_lines(stdout_reader, helper::IOType::StdOut);
-    });
-
-    let stderr_handle = thread::spawn(move || {
-        helper::read_lines(stderr_reader, helper::IOType::StdErr);
-    });
-
-    stdout_handle
-        .join()
-        .expect("Unable to join stdout handle");
-
-    stderr_handle
-        .join()
-        .expect("Unable to join stderr handle");
-
+    helper::listen_for_output(&mut child)
+        .with_context(|| format!("Unable to listen to stdout of jplag, cmd: {dbg_cmd}"))?;
 
     info!("Finished running jplag");
 
     let status = child.wait()
-        .with_context(|| format!("Unable to wait for child process {dbg_cmd}"))?;
+                      .with_context(|| format!("Unable to wait for child process {dbg_cmd}"))?;
 
     if !status.success() {
         warn!("Command failed, {status}");
     } else {
-        info!("Finished successfully {status}");
-        info!("Look at the results by opening {result_dir}{jplag_jar} in your browser")
+        info!("Finished successfully, {status}");
+        info!("Look at the results by opening {result_dir}index.html in your browser")
     }
 
     Ok(())
