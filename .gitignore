@@ -5,3 +5,4 @@ tmp/
 out/
 config.toml
 *.log
+test_files/
