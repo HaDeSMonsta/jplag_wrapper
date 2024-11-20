@@ -40,9 +40,9 @@ const DEFAULT_JAVA_VERSION: &str = "java19";
     version,
     about = "A jplag wrapper with sane defaults",
     long_about = "A jplag wrapper with sane defaults\n\n\
-    Option priority is as follows ('-> == override')\n\n\
+    Option priority for each individual option is as follows ('-> == override')\n\n\
     `cli-arg -> toml config -> default value`\n\n\
-    While `--init` creates a toml file with all settings,\n\
+    While `--init` creates a toml file with all settings, \
     you only need to set the ones you want to change"
 )]
 struct Args {
@@ -91,8 +91,16 @@ struct Args {
     /// Defaults to None
     ///
     /// Will panic, if arg is set and file doesn't exist
+    /// 
+    /// Argument will be ignored if jplag args are manually set
     #[clap(short, long)]
     ignore_file: Option<String>,
+    /// Set to ignore the output of jplag
+    ///
+    /// The programm will still wait for the child process to exit
+    /// and process the output, but it will just ignore it
+    #[clap(long)]
+    ignore_output: bool,
     /// Where the jplag jar can be found
     ///
     /// Defaults to `jplag.jar`
@@ -144,7 +152,7 @@ pub fn get_log_level() -> Level {
 /// Parse args for the bin, prioritizes cli over toml
 ///
 /// Returns: (source, tmp_dir, target_dir, jplag_jar)
-pub fn parse_args() -> anyhow::Result<(String, String, String, String, Vec<String>)> {
+pub fn parse_args() -> anyhow::Result<(String, String, String, String, Vec<String>, bool)> {
     debug!("Getting args");
     let args = ARGS.clone();
     if args.init {
@@ -184,6 +192,10 @@ pub fn parse_args() -> anyhow::Result<(String, String, String, String, Vec<Strin
 
     debug!("Set target dir to {target_dir}");
 
+    let ignore_out = args.ignore_output;
+
+    debug!("Ignore jplag output: {ignore_out}");
+
     let jplag_jar = args.jplag_jar
                         .unwrap_or_else(|| {
                             config.jplag_jar
@@ -193,9 +205,11 @@ pub fn parse_args() -> anyhow::Result<(String, String, String, String, Vec<Strin
     debug!("Set jplag_jar to {jplag_jar}");
 
     let mut jplag_args = args.jplag_args;
+    let mut jplag_args_overridden = true;
     if jplag_args.is_empty() {
         let mut to_append = config.jplag_args
                                   .unwrap_or_else(|| {
+                                      jplag_args_overridden = false;
                                       let v;
                                       #[cfg(not(feature = "legacy"))]
                                       {
@@ -223,28 +237,33 @@ pub fn parse_args() -> anyhow::Result<(String, String, String, String, Vec<Strin
         jplag_args.append(&mut to_append);
     }
 
-    let ignore_file = args.ignore_file
-                          .or(config.ignore_file);
+    if !jplag_args_overridden {
+        debug!("Jplag args were not overridden, checking for ignore file");
+        let ignore_file = args.ignore_file
+                              .or(config.ignore_file);
 
-    if let Some(ignore_file) = ignore_file {
-        debug!("Ignore file is set: {ignore_file}");
+        if let Some(ignore_file) = ignore_file {
+            debug!("Ignore file is set: {ignore_file}");
 
-        if !fs::exists(&ignore_file)
-            .with_context(|| format!("Unable to check if \"{ignore_file}\" exists"))? {
-            return Err(custom_error::FileNotFoundError::IgnoreFileNotFound(ignore_file).into());
+            if !fs::exists(&ignore_file)
+                .with_context(|| format!("Unable to check if \"{ignore_file}\" exists"))? {
+                return Err(custom_error::FileNotFoundError::IgnoreFileNotFound(ignore_file).into());
+            }
+
+            jplag_args.push(String::from("-x"));
+            jplag_args.push(ignore_file);
+        } else {
+            debug!("Ignore file not set");
         }
-
-        jplag_args.push(String::from("-x"));
-        jplag_args.push(ignore_file);
-    } else {
-        debug!("Ignore file not set");
+    } else { 
+        debug!("Jplag args were overridden, ignoring possible ignore file");
     }
 
     debug!("Set jplag args to {jplag_args:?}");
 
     info!("Successfully parsed config");
 
-    Ok((source, tmp_dir, target_dir, jplag_jar, jplag_args))
+    Ok((source, tmp_dir, target_dir, jplag_jar, jplag_args, ignore_out))
 }
 
 fn parse_toml(file: &str) -> anyhow::Result<Config> {

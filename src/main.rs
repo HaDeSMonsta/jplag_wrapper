@@ -34,6 +34,7 @@ fn main() -> Result<()> {
         result_dir,
         jplag_jar,
         jplag_args,
+        ignore_jplag_output,
     ) = config::parse_args()
         .with_context(|| "Unable to parse args")?;
     debug!("Full config: \
@@ -52,6 +53,7 @@ fn main() -> Result<()> {
         &temp_dir,
         &jplag_jar,
         jplag_args,
+        ignore_jplag_output,
     )
         .with_context(|| "Running jplag failed")?;
 
@@ -108,6 +110,7 @@ fn run<P>(
     tmp_dir: P,
     jplag_jar: &str,
     jplag_args: Vec<String>,
+    ignore_jplag_output: bool,
 ) -> Result<()>
 where
     P: AsRef<Path>,
@@ -189,7 +192,7 @@ where
         .spawn()
         .with_context(|| format!("Unable to run jplag command {dbg_cmd}"))?;
 
-    helper::listen_for_output(&mut child)
+    helper::listen_for_output(&mut child, ignore_jplag_output)
         .with_context(|| format!("Unable to listen to stdout of jplag, cmd: {dbg_cmd}"))?;
 
     info!("Finished running jplag");
