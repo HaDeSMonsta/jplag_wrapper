@@ -71,10 +71,27 @@ pub fn listen_for_output(program: &mut Child) -> anyhow::Result<()> {
     match program.stdout {
         Some(ref mut out) => {
             let reader = BufReader::new(out);
+
+            #[cfg(not(feature = "legacy"))]
+            let mut cnt = 0u8;
             for line in reader.lines() {
                 let line = line.with_context(|| "Unable to parse line from jplag")?;
+
+                #[cfg(not(feature = "legacy"))]
+                if cnt != 0 {
+                    warn!("{line}");
+                    cnt -= 1;
+                    continue;
+                }
+
                 if line.to_lowercase().contains("error") {
                     // Yes, jplag sends it errors to stdout
+                    #[cfg(not(feature = "legacy"))]
+                    if line.to_lowercase().contains("expected") ||
+                        line.to_lowercase().contains("illegal") {
+                        cnt = 2;
+                    }
+
                     warn!("{line}");
                 } else if line.to_lowercase().contains("submissions") {
                     info!("{line}");
