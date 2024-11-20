@@ -3,9 +3,10 @@ mod helper;
 mod custom_error;
 
 use std::fmt::Debug;
-use std::fs;
+use std::{env, fs};
 use std::path::Path;
 use std::process::{Command, Stdio};
+use std::time::Instant;
 use anyhow::{Context, Result};
 use tracing::{debug, info, warn};
 #[cfg(debug_assertions)]
@@ -13,6 +14,7 @@ use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 
 fn main() -> Result<()> {
+    let start = Instant::now();
     #[cfg(not(debug_assertions))]
     let log_level = config::get_log_level();
     #[cfg(debug_assertions)]
@@ -51,7 +53,11 @@ fn main() -> Result<()> {
         info!("Cleaning up");
         cleanup(&temp_dir)
             .with_context(|| "Cleanup failed")?;
+        info!("Finished cleaning up, goodbye! ({} ms), start.elapsed().as_millis()");
+        return Ok(());
     }
+
+    info!("Finished program, goodbye! ({} ms)", start.elapsed().as_millis());
 
     Ok(())
 }
@@ -189,7 +195,12 @@ where
         info!("Look at the results by uploading the file in {result_dir} to \
         https://jplag.github.io/JPlag/");
         #[cfg(feature = "legacy")]
-        info!("Look at the results by opening {result_dir}index.html in your browser")
+        {
+            let current_dir = env::current_dir()
+                .with_context(|| "Unable to get current dir")?;
+            let result_file = current_dir.join(format!("{result_dir}/index.html"));
+            info!("Look at the results by opening file://{} in your browser", result_file.display());
+        }
     }
 
     Ok(())
