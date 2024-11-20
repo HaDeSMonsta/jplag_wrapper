@@ -10,12 +10,15 @@ use tracing::{debug, info};
 #[cfg(not(debug_assertions))]
 use tracing::Level;
 
+use crate::custom_error;
+
 const ARGS: LazyCell<Args> = LazyCell::new(|| Args::parse());
 const DEFAULT_CONFIG_FILE: &str = "config.toml";
 const DEFAULT_SOURCE_FILE: &str = "submissions.zip";
 const DEFAULT_JPLAG_FILE: &str = "jplag.jar";
 const DEFAULT_TARGET_DIR: &str = "out/";
 const DEFAULT_TMP_DIR: &str = "tmp/";
+const DEFAULT_JAVA_VERSION: &str = "java19";
 
 
 /// A jplag wrapper with sane defaults
@@ -119,7 +122,7 @@ pub fn parse_args() -> Result<(String, String, String, String, Vec<String>)> {
             .with_context(|| "Unable to write default config")?;
     };
 
-    let mut config = parse_toml(
+    let config = parse_toml(
         &args.config.unwrap_or_else(|| DEFAULT_CONFIG_FILE.to_string()),
     ).with_context(|| "Unable to parse toml config")?;
 
@@ -165,7 +168,7 @@ pub fn parse_args() -> Result<(String, String, String, String, Vec<String>)> {
                                           String::from("-r"),
                                           target_dir.clone(),
                                           String::from("-l"),
-                                          String::from("java19"),
+                                          String::from(DEFAULT_JAVA_VERSION),
                                       ]
                                   });
         jplag_args.append(&mut to_append);
@@ -184,7 +187,9 @@ fn parse_toml(file: &str) -> Result<Config> {
         .with_context(|| format!("Unable to check if {file} exists"))? {
         debug!("{file} does not exist");
         if file != DEFAULT_CONFIG_FILE {
-            panic!("{file} does not exist");
+            return Err(custom_error::FileNotFoundError::ConfigFileNotFound(
+                file.to_string()
+            ).into());
         }
         debug!("Returning empty config");
         return Ok(Config {
@@ -221,7 +226,7 @@ fn dump_default_config() -> Result<()> {
             String::from("-r"),
             String::from(DEFAULT_TARGET_DIR),
             String::from("-l"),
-            String::from("java19"),
+            String::from(DEFAULT_JAVA_VERSION),
         ]),
     };
     debug!("Created default config struct");

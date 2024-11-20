@@ -3,16 +3,12 @@ use std::fmt::Debug;
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
-use anyhow::{Context, Result};
+use std::process::Child;
+use anyhow::Context;
 use tracing::{debug, info, warn};
 use zip::ZipArchive;
 
-pub enum IOType {
-    StdOut,
-    StdErr,
-}
-
-pub fn unzip_to<P, Q>(zip: P, dest: Q) -> Result<()>
+pub fn unzip_to<P, Q>(zip: P, dest: Q) -> anyhow::Result<()>
 where
     P: AsRef<Path> + Debug,
     Q: AsRef<Path>,
@@ -66,21 +62,28 @@ where
                                          src = file.name()))?;
             debug!("IO copied {src} to {out_file:?}", src = file.name());
         }
-
     }
 
     Ok(())
 }
 
-pub fn read_lines<R: BufRead>(reader: R, stream_type: IOType) {
-    for line in reader.lines() {
-        let Ok(line) = line else {
-            warn!("Unable to process line {line:?}");
-            continue;
-        };
-        match stream_type {
-            IOType::StdOut => debug!("{line}"),
-            IOType::StdErr => warn!("{line}"),
+pub fn listen_for_output(program: &mut Child) -> anyhow::Result<()> {
+    match program.stdout {
+        Some(ref mut out) => {
+            let reader = BufReader::new(out);
+            for line in reader.lines() {
+                let line = line.with_context(|| "Unable to parse line from jplag")?;
+                if line.to_lowercase().contains("error") {
+                    // Yes, jplag sends it errors to stdout
+                    warn!("{line}");
+                } else if line.to_lowercase().contains("submissions") {
+                    info!("{line}");
+                } else {
+                    debug!("{line}");
+                }
+            }
         }
+        None => warn!("No output :("),
     }
+    Ok(())
 }
