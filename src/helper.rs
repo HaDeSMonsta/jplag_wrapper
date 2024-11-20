@@ -1,4 +1,5 @@
 use std::{fs, io};
+use std::collections::HashSet;
 use std::fmt::Debug;
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader};
@@ -6,6 +7,7 @@ use std::path::Path;
 use std::process::Child;
 use anyhow::Context;
 use tracing::{debug, info, warn};
+use walkdir::WalkDir;
 use zip::ZipArchive;
 
 pub fn unzip_to<P, Q>(zip: P, dest: Q) -> anyhow::Result<()>
@@ -67,6 +69,44 @@ where
     Ok(())
 }
 
+/// Fuck Apple
+pub fn sanitize_submissions<P>(path: P) -> anyhow::Result<()>
+where
+    P: AsRef<Path> + Debug,
+{
+    let path = path.as_ref();
+    let mut to_remove = HashSet::new();
+
+    for entry in WalkDir::new(&path) {
+        let entry = entry.with_context(|| format!("Invalid entry in {path:?}"))?;
+        let entry_name = entry.path().to_string_lossy().to_lowercase();
+        debug!("Checking entry: {entry_name}");
+
+        if entry_name.ends_with(".ds_store") {
+            to_remove.insert(entry.path().to_path_buf());
+        }
+        debug!("No match found")
+    }
+
+    debug!("Set to remove: {to_remove:?}");
+
+    for entry in to_remove {
+        fs::remove_file(&entry)
+            .with_context(|| format!("Unable to remove {entry:?}"))?;
+    }
+
+    debug!("Removed .DS_Stores, now searching for __MACOSX");
+
+    for entry in fs::read_dir(&path)
+        .with_context(|| format!("Unable to read dir: {path:?}"))? {
+        let entry = entry.with_context(|| format!("Invalid entry in {path:?}"))?;
+        let mac_dir = entry.path().join("__MACOSX");
+        let _ = fs::remove_dir_all(&mac_dir);
+    }
+
+    Ok(())
+}
+
 pub fn listen_for_output(program: &mut Child) -> anyhow::Result<()> {
     match program.stdout {
         Some(ref mut out) => {
@@ -75,29 +115,34 @@ pub fn listen_for_output(program: &mut Child) -> anyhow::Result<()> {
             #[cfg(not(feature = "legacy"))]
             let mut warn = false;
             for line in reader.lines() {
-                let line = line.with_context(|| "Unable to parse line from jplag")?;
+                let line = line
+                    .with_context(|| "Unable to parse line from jplag")?;
+                let lower = line.to_lowercase();
 
                 #[cfg(not(feature = "legacy"))]
                 if warn {
                     warn!("{line}");
-                    if line.contains("^") { warn = false; }
+                    if lower.contains("^") { warn = false;}
                     continue;
                 }
 
-                if line.to_lowercase().contains("error") {
+                if lower.contains("error") ||
+                    lower.contains("warn") ||
+                    lower.contains("fail") {
                     // Yes, jplag sends it errors to stdout
                     #[cfg(not(feature = "legacy"))]
-                    if line.to_lowercase().contains("expected") ||
-                        line.to_lowercase().contains("illegal") {
+                    if line.contains("error:") {
                         warn = true;
                     }
 
                     warn!("{line}");
-                } else if line.to_lowercase().contains("submissions") {
-                    info!("{line}");
-                } else {
-                    debug!("{line}");
+                    continue;
                 }
+                if lower.contains("submissions") {
+                    info!("{line}");
+                    continue;
+                }
+                debug!("{line}");
             }
         }
         None => warn!("No output :("),

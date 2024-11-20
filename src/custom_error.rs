@@ -8,4 +8,6 @@ pub enum FileNotFoundError {
     JarFileNotFound(String),
     #[error("Submission zip file \"{0}\" not found")]
     ZipFileNotFound(String),
+    #[error("Ignore file \"{0}\" not found")]
+    IgnoreFileNotFound(String),
 }

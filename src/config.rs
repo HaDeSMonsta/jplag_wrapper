@@ -1,12 +1,13 @@
 use std::cell::LazyCell;
-use std::fs;
+use std::fmt::Debug;
+use std::{fs, io};
 use std::fs::OpenOptions;
 use std::io::{BufWriter, Write};
 use std::process::exit;
-use anyhow::{Context, Result};
+use anyhow::Context;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 #[cfg(not(debug_assertions))]
 use tracing::Level;
 
@@ -46,9 +47,11 @@ const DEFAULT_JAVA_VERSION: &str = "java19";
 )]
 struct Args {
     /// Initialize the config,
-    /// will create (or override!) `config.toml`
-    /// and fill it with default values
-    #[clap(short, long)]
+    /// will create (or override!) `config.toml` with all values
+    /// and fill it with the defaults
+    ///
+    /// Except `ignore_file`, because the default is `None`
+    #[clap(long)]
     init: bool,
     /// Set to use log level `debug`
     ///
@@ -80,9 +83,21 @@ struct Args {
     /// Warning: This directory will be deleted at application start, if it exists
     #[clap(long)]
     tmp_dir: Option<String>,
+    /// Where to find the ignore file
+    ///
+    /// Will be passed to jplag as an arg
+    /// `-x {{ignore_file}}`
+    ///
+    /// Defaults to None
+    ///
+    /// Will panic, if arg is set and file doesn't exist
+    #[clap(short, long)]
+    ignore_file: Option<String>,
     /// Where the jplag jar can be found
     ///
     /// Defaults to `jplag.jar`
+    ///
+    /// Will panic, if file does not exist
     #[clap(short, long)]
     jplag_jar: Option<String>,
     /// Everything else before `--`
@@ -112,6 +127,7 @@ struct Config {
     source_zip: Option<String>,
     target_dir: Option<String>,
     tmp_dir: Option<String>,
+    ignore_file: Option<String>,
     jplag_jar: Option<String>,
     jplag_args: Option<Vec<String>>,
 }
@@ -127,14 +143,15 @@ pub fn get_log_level() -> Level {
 
 /// Parse args for the bin, prioritizes cli over toml
 ///
-/// Returns: (source, tmp_dir, target_dir, jplag_jar, jplag_args)
-pub fn parse_args() -> Result<(String, String, String, String, Vec<String>)> {
+/// Returns: (source, tmp_dir, target_dir, jplag_jar)
+pub fn parse_args() -> anyhow::Result<(String, String, String, String, Vec<String>)> {
     debug!("Getting args");
     let args = ARGS.clone();
     if args.init {
         debug!("Initializing config");
         dump_default_config()
             .with_context(|| "Unable to write default config")?;
+        exit(0);
     };
 
     let config = parse_toml(
@@ -173,6 +190,8 @@ pub fn parse_args() -> Result<(String, String, String, String, Vec<String>)> {
                                   .unwrap_or_else(|| DEFAULT_JPLAG_FILE.to_string())
                         });
 
+    debug!("Set jplag_jar to {jplag_jar}");
+
     let mut jplag_args = args.jplag_args;
     if jplag_args.is_empty() {
         let mut to_append = config.jplag_args
@@ -204,6 +223,23 @@ pub fn parse_args() -> Result<(String, String, String, String, Vec<String>)> {
         jplag_args.append(&mut to_append);
     }
 
+    let ignore_file = args.ignore_file
+                          .or(config.ignore_file);
+
+    if let Some(ignore_file) = ignore_file {
+        debug!("Ignore file is set: {ignore_file}");
+
+        if !fs::exists(&ignore_file)
+            .with_context(|| format!("Unable to check if \"{ignore_file}\" exists"))? {
+            return Err(custom_error::FileNotFoundError::IgnoreFileNotFound(ignore_file).into());
+        }
+
+        jplag_args.push(String::from("-x"));
+        jplag_args.push(ignore_file);
+    } else {
+        debug!("Ignore file not set");
+    }
+
     debug!("Set jplag args to {jplag_args:?}");
 
     info!("Successfully parsed config");
@@ -211,7 +247,7 @@ pub fn parse_args() -> Result<(String, String, String, String, Vec<String>)> {
     Ok((source, tmp_dir, target_dir, jplag_jar, jplag_args))
 }
 
-fn parse_toml(file: &str) -> Result<Config> {
+fn parse_toml(file: &str) -> anyhow::Result<Config> {
     debug!("Parsing toml, source: {file}");
     if !fs::exists(&file)
         .with_context(|| format!("Unable to check if {file} exists"))? {
@@ -226,6 +262,7 @@ fn parse_toml(file: &str) -> Result<Config> {
             source_zip: None,
             target_dir: None,
             tmp_dir: None,
+            ignore_file: None,
             jplag_jar: None,
             jplag_args: None,
         });
@@ -244,11 +281,23 @@ fn parse_toml(file: &str) -> Result<Config> {
     )
 }
 
-fn dump_default_config() -> Result<()> {
+fn dump_default_config() -> anyhow::Result<()> {
+    if fs::exists(DEFAULT_CONFIG_FILE)
+        .with_context(|| format!("Unable to check if \"{DEFAULT_CONFIG_FILE}\" exists"))? {
+        warn!("\"{DEFAULT_CONFIG_FILE}\" already exists, do you want to override it? [Y/n]");
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).with_context(|| "Unable to read stdin")?;
+        if input.to_lowercase().trim() != "y" {
+            info!("Aborting");
+            return Ok(());
+        }
+    }
+
     let conf = Config {
         source_zip: Some(String::from(DEFAULT_SOURCE_FILE)),
         target_dir: Some(String::from(DEFAULT_TARGET_DIR)),
         tmp_dir: Some(String::from(DEFAULT_TMP_DIR)),
+        ignore_file: None, // Don't like it, but if we set something the next run might fail
         jplag_jar: Some(String::from(DEFAULT_JPLAG_FILE)),
         #[cfg(not(feature = "legacy"))]
         jplag_args: Some(vec![
@@ -295,5 +344,5 @@ fn dump_default_config() -> Result<()> {
 
     info!("Created default config");
 
-    exit(0);
+    Ok(())
 }
