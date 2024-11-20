@@ -73,14 +73,14 @@ pub fn listen_for_output(program: &mut Child) -> anyhow::Result<()> {
             let reader = BufReader::new(out);
 
             #[cfg(not(feature = "legacy"))]
-            let mut cnt = 0u8;
+            let mut warn = false;
             for line in reader.lines() {
                 let line = line.with_context(|| "Unable to parse line from jplag")?;
 
                 #[cfg(not(feature = "legacy"))]
-                if cnt != 0 {
+                if warn {
                     warn!("{line}");
-                    cnt -= 1;
+                    if line.contains("^") { warn = false; }
                     continue;
                 }
 
@@ -89,7 +89,7 @@ pub fn listen_for_output(program: &mut Child) -> anyhow::Result<()> {
                     #[cfg(not(feature = "legacy"))]
                     if line.to_lowercase().contains("expected") ||
                         line.to_lowercase().contains("illegal") {
-                        cnt = 2;
+                        warn = true;
                     }
 
                     warn!("{line}");

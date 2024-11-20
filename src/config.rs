@@ -28,7 +28,7 @@ const DEFAULT_JAVA_VERSION: &str = "java19";
 
 /// A jplag wrapper with sane defaults
 ///
-/// Option priority is as follows
+/// Option priority is as follows (`-> == override`)
 ///
 /// `cli-arg -> toml config -> default value`
 ///
@@ -39,7 +39,7 @@ const DEFAULT_JAVA_VERSION: &str = "java19";
     version,
     about = "A jplag wrapper with sane defaults",
     long_about = "A jplag wrapper with sane defaults\n\n\
-    Option priority is as follows\n\n\
+    Option priority is as follows ('-> == override')\n\n\
     `cli-arg -> toml config -> default value`\n\n\
     While `--init` creates a toml file with all settings,\n\
     you only need to set the ones you want to change"
@@ -83,6 +83,7 @@ struct Args {
     /// Where the jplag jar can be found
     ///
     /// Defaults to `jplag.jar`
+    #[clap(short, long)]
     jplag_jar: Option<String>,
     /// Everything else before `--`
     ///
