@@ -107,7 +107,7 @@ where
     Ok(())
 }
 
-pub fn listen_for_output(program: &mut Child) -> anyhow::Result<()> {
+pub fn listen_for_output(program: &mut Child, ignore_output: bool) -> anyhow::Result<()> {
     match program.stdout {
         Some(ref mut out) => {
             let reader = BufReader::new(out);
@@ -117,12 +117,13 @@ pub fn listen_for_output(program: &mut Child) -> anyhow::Result<()> {
             for line in reader.lines() {
                 let line = line
                     .with_context(|| "Unable to parse line from jplag")?;
+                if ignore_output { continue; }
                 let lower = line.to_lowercase();
 
                 #[cfg(not(feature = "legacy"))]
                 if warn {
                     warn!("{line}");
-                    if lower.contains("^") { warn = false;}
+                    if lower.contains("^") { warn = false; }
                     continue;
                 }
 
