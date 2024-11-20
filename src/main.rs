@@ -3,7 +3,9 @@ mod helper;
 mod custom_error;
 
 use std::fmt::Debug;
-use std::{env, fs};
+use std::fs;
+#[cfg(feature = "legacy")]
+use std::env;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::Instant;
@@ -53,10 +55,10 @@ fn main() -> Result<()> {
         info!("Cleaning up");
         cleanup(&temp_dir)
             .with_context(|| "Cleanup failed")?;
-        info!("Finished cleaning up, goodbye! ({} ms), start.elapsed().as_millis()");
-        return Ok(());
+        info!("Finished cleaning up, goodbye! ({} ms)", start.elapsed().as_millis());
     }
 
+    #[cfg(debug_assertions)]
     info!("Finished program, goodbye! ({} ms)", start.elapsed().as_millis());
 
     Ok(())
