@@ -91,7 +91,7 @@ struct Args {
     /// Defaults to None
     ///
     /// Will panic, if arg is set and file doesn't exist
-    /// 
+    ///
     /// Argument will be ignored if jplag args are manually set
     #[clap(short, long)]
     ignore_file: Option<String>,
@@ -162,8 +162,10 @@ pub fn parse_args() -> anyhow::Result<(String, String, String, String, Vec<Strin
         exit(0);
     };
 
+    let config_name_overridden = args.config.is_some();
     let config = parse_toml(
         &args.config.unwrap_or_else(|| DEFAULT_CONFIG_FILE.to_string()),
+        config_name_overridden,
     ).with_context(|| "Unable to parse toml config")?;
 
     debug!("Successfully parsed toml");
@@ -255,7 +257,7 @@ pub fn parse_args() -> anyhow::Result<(String, String, String, String, Vec<Strin
         } else {
             debug!("Ignore file not set");
         }
-    } else { 
+    } else {
         debug!("Jplag args were overridden, ignoring possible ignore file");
     }
 
@@ -266,12 +268,12 @@ pub fn parse_args() -> anyhow::Result<(String, String, String, String, Vec<Strin
     Ok((source, tmp_dir, target_dir, jplag_jar, jplag_args, ignore_out))
 }
 
-fn parse_toml(file: &str) -> anyhow::Result<Config> {
+fn parse_toml(file: &str, conf_file_name_overridden: bool) -> anyhow::Result<Config> {
     debug!("Parsing toml, source: {file}");
     if !fs::exists(&file)
         .with_context(|| format!("Unable to check if {file} exists"))? {
         debug!("{file} does not exist");
-        if file != DEFAULT_CONFIG_FILE {
+        if conf_file_name_overridden {
             return Err(custom_error::FileNotFoundError::ConfigFileNotFound(
                 file.to_string()
             ).into());

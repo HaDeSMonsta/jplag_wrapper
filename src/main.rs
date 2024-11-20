@@ -42,7 +42,8 @@ fn main() -> Result<()> {
     temp_dir={temp_dir}, \
     results_dir={result_dir}, \
     jplag_jar={jplag_jar}, \
-    jplag_args={jplag_args:?}");
+    jplag_args={jplag_args:?}, \
+    ignore_jplag_output={ignore_jplag_output}");
 
     info!("Initializing project");
     init(&source_file, &result_dir, &temp_dir, &jplag_jar)
