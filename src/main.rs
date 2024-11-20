@@ -76,6 +76,8 @@ where
 
     debug!("Removing result dir");
     let _ = fs::remove_dir_all(&result_dir);
+    #[cfg(not(feature = "legacy"))]
+    fs::create_dir_all(&result_dir)?;
 
     debug!("Removing tmp dir");
     let _ = fs::remove_dir_all(&tmp_dir);
@@ -183,6 +185,10 @@ where
         warn!("Command failed, {status}");
     } else {
         info!("Finished successfully, {status}");
+        #[cfg(not(feature = "legacy"))]
+        info!("Look at the results by uploading the file in {result_dir} to \
+        https://jplag.github.io/JPlag/");
+        #[cfg(feature = "legacy")]
         info!("Look at the results by opening {result_dir}index.html in your browser")
     }
 
