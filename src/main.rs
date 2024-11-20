@@ -47,7 +47,12 @@ fn main() -> Result<()> {
     init(&source_file, &result_dir, &temp_dir, &jplag_jar)
         .with_context(|| "Initialization failed")?;
 
-    run(&result_dir, &temp_dir, &jplag_jar, jplag_args)
+    run(
+        &result_dir,
+        &temp_dir,
+        &jplag_jar,
+        jplag_args,
+    )
         .with_context(|| "Running jplag failed")?;
 
     #[cfg(not(debug_assertions))]
@@ -98,7 +103,12 @@ where
     Ok(())
 }
 
-fn run<P>(result_dir: &str, tmp_dir: P, jplag_jar: &str, jplag_args: Vec<String>) -> Result<()>
+fn run<P>(
+    result_dir: &str,
+    tmp_dir: P,
+    jplag_jar: &str,
+    jplag_args: Vec<String>,
+) -> Result<()>
 where
     P: AsRef<Path>,
 {
@@ -135,7 +145,6 @@ where
 
             // let zip_target_dir = format!("{zip_dir_name}/out");
             let zip_target_dir = zip_dir_name;
-            let macos_dir = tmp_dir.join(format!("{zip_target_dir}/__MACOSX/"));
             let dest = tmp_dir.join(&zip_target_dir);
 
             debug!("Set destination of unzipped file to {dest:?}");
@@ -150,10 +159,6 @@ where
 
             debug!("Unzipped {zip_file_path:?} to {dest:?}");
 
-            debug!("Removing macosx dir: {macos_dir:?}");
-            let _ = fs::remove_dir_all(macos_dir); // I hate apple so much
-            debug!("Successfully removed macosx dir");
-
             fs::remove_file(&zip_file_path)
                 .with_context(|| format!("Unable to remove {zip_file_path:?}"))?;
 
@@ -161,7 +166,10 @@ where
         }
     }
 
-    info!("Unzipped all submissions, running jplag (I hope you have java installed)");
+    info!("Unzipped all submissions, Sanitizing output");
+    helper::sanitize_submissions(&tmp_dir)
+        .with_context(|| "Unable to sanitize output")?;
+    info!("Sanitized output, running jplag (I hope you have java installed)");
 
     let mut dbg_cmd = format!("java -jar {jplag_jar}");
 
@@ -192,7 +200,7 @@ where
     if !status.success() {
         warn!("Command failed, {status}");
     } else {
-        info!("Finished successfully, {status}");
+        info!("{status}");
         #[cfg(not(feature = "legacy"))]
         info!("Look at the results by uploading the file in {result_dir} to \
         https://jplag.github.io/JPlag/");
