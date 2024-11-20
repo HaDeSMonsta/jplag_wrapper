@@ -93,7 +93,7 @@ struct Args {
     ///
     /// Will be passed directly to jplag as arguments
     ///
-    /// Defaults to `{{tmp_dir}}/results.zip -r {{target_dir}} -l java`
+    /// Defaults to `{{tmp_dir}} -r {{target_dir}}/results.zip -l java`
     #[clap(last = true)]
     jplag_args: Vec<String>,
     #[cfg(feature = "legacy")]
