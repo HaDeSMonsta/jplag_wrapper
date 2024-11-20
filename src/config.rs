@@ -11,7 +11,7 @@ use tracing::{debug, info, warn};
 #[cfg(not(debug_assertions))]
 use tracing::Level;
 
-use crate::custom_error;
+use crate::custom_errors;
 
 const ARGS: LazyCell<Args> = LazyCell::new(|| Args::parse());
 const DEFAULT_CONFIG_FILE: &str = "config.toml";
@@ -249,7 +249,7 @@ pub fn parse_args() -> anyhow::Result<(String, String, String, String, Vec<Strin
 
             if !fs::exists(&ignore_file)
                 .with_context(|| format!("Unable to check if \"{ignore_file}\" exists"))? {
-                return Err(custom_error::FileNotFoundError::IgnoreFileNotFound(ignore_file).into());
+                return Err(custom_errors::FileNotFoundError::IgnoreFileNotFound(ignore_file).into());
             }
 
             jplag_args.push(String::from("-x"));
@@ -274,7 +274,7 @@ fn parse_toml(file: &str, conf_file_name_overridden: bool) -> anyhow::Result<Con
         .with_context(|| format!("Unable to check if {file} exists"))? {
         debug!("{file} does not exist");
         if conf_file_name_overridden {
-            return Err(custom_error::FileNotFoundError::ConfigFileNotFound(
+            return Err(custom_errors::FileNotFoundError::ConfigFileNotFound(
                 file.to_string()
             ).into());
         }

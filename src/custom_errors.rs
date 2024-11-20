@@ -11,3 +11,9 @@ pub enum FileNotFoundError {
     #[error("Ignore file \"{0}\" not found")]
     IgnoreFileNotFound(String),
 }
+
+#[derive(Debug, Error)]
+pub enum InvalidSubmissionsError {
+    #[error("Couldn't find a zip file in \"{0}\"")]
+    NoZipFileFound(String),
+}
