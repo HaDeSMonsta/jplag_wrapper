@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 use anyhow::Context;
+use flate2::read::GzDecoder;
 use tracing::debug;
 use crate::helper;
 
@@ -126,6 +127,8 @@ where
     let student_name_dir_path = student_name_dir_path.as_ref();
     let archive_file_path = archive_file_path.as_ref();
 
+    debug!("Untaring {archive_file_path:?} to {student_name_dir_path:?}");
+
     tar::Archive::new(
         BufReader::new(
             File::open(&archive_file_path)
@@ -133,6 +136,46 @@ where
         )).unpack(&student_name_dir_path)
           .with_context(|| format!("Unable to untar {archive_file_path:?} \
         into {student_name_dir_path:?}"))?;
+
+    debug!("Successfully untared {archive_file_path:?}, removing source");
+
+    fs::remove_file(&archive_file_path)
+        .with_context(|| format!("Unable to remove {archive_file_path:?}"))?;
+
+    debug!("Successfully removed {archive_file_path:?}");
+
+    Ok(())
+}
+pub fn gz<P, Q, R>(_tmp_dir: P, student_name_dir_path: Q, archive_file_path: R)
+    -> anyhow::Result<()>
+where
+    P: AsRef<Path>,
+    Q: AsRef<Path>,
+    R: AsRef<Path>,
+{
+    let student_name_dir_path = student_name_dir_path.as_ref();
+    let archive_file_path = archive_file_path.as_ref();
+
+    debug!("Ungzipping {archive_file_path:?} to {student_name_dir_path:?}");
+
+    tar::Archive::new(
+        GzDecoder::new(
+            BufReader::new(
+                File::open(&archive_file_path)
+                    .with_context(|| format!("Unable to open tar.gz file \
+                    {archive_file_path:?}"))?
+            )
+        )
+    ).unpack(&student_name_dir_path)
+     .with_context(|| format!("Unable to extract {archive_file_path:?} \
+        to {student_name_dir_path:?}"))?;
+
+    debug!("Successfully ungzipped {student_name_dir_path:?}, removing source");
+
+    fs::remove_file(&archive_file_path)
+        .with_context(|| format!("Unable to remove {archive_file_path:?}"))?;
+
+    debug!("Successfully removed {archive_file_path:?}");
 
     Ok(())
 }

@@ -145,6 +145,7 @@ where
                 Some(ref s) if s == "rar" => archive_handler::rar,
                 Some(ref s) if s == "7z" => archive_handler::sz,
                 Some(ref s) if s == "tar" => archive_handler::tar,
+                Some(ref s) if s == "gz" => archive_handler::gz, // NOTE We assume, that all files ending in `.gz` are `.tar.gz` files
                 _ => {
                     if archive.path().is_file() {
                         debug!("Found non archive file {archive:?}, removing");
