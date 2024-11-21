@@ -1,5 +1,6 @@
 use std::{fs, io};
 use std::collections::HashSet;
+use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader};
@@ -77,6 +78,24 @@ where
     let path = path.as_ref();
     let mut to_remove = HashSet::new();
 
+    debug!("Removing MACOSX paths");
+    
+    for entry in WalkDir::new(&path) {
+        let entry = entry.with_context(|| format!("Invalid entry in {path:?}"))?;
+        let path = entry.path();
+
+        if !path.is_dir() || path.file_name() != Some(OsStr::new("__MACOSX")) {
+            continue;
+        }
+
+        debug!("Removing MACOSX path {path:?}");
+
+        fs::remove_dir_all(&path)
+            .with_context(|| format!("Unable to remove MACOSX path {path:?}"))?;
+    }
+
+    debug!("Removed MACOSX paths, now searching for .DS_Store");
+
     for entry in WalkDir::new(&path) {
         let entry = entry.with_context(|| format!("Invalid entry in {path:?}"))?;
         let entry_name = entry.path().to_string_lossy().to_lowercase();
@@ -95,14 +114,12 @@ where
             .with_context(|| format!("Unable to remove {entry:?}"))?;
     }
 
-    debug!("Removed .DS_Stores, now searching for __MACOSX");
-
-    for entry in fs::read_dir(&path)
+    /*for entry in fs::read_dir(&path)
         .with_context(|| format!("Unable to read dir: {path:?}"))? {
         let entry = entry.with_context(|| format!("Invalid entry in {path:?}"))?;
         let mac_dir = entry.path().join("__MACOSX");
         let _ = fs::remove_dir_all(&mac_dir);
-    }
+    }*/
 
     Ok(())
 }
