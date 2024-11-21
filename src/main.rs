@@ -145,7 +145,15 @@ where
                 Some(ref s) if s == "rar" => archive_handler::rar,
                 Some(ref s) if s == "7z" => archive_handler::sz,
                 Some(ref s) if s == "tar" => archive_handler::tar,
-                _ => continue,
+                _ => {
+                    if archive.path().is_file() {
+                        debug!("Found non archive file {archive:?}, removing");
+                        fs::remove_file(&archive_file_path)
+                            .with_context(|| format!("Unable to remove non archive file\
+                            {archive:?}"))?;
+                    }
+                    continue;
+                },
             };
             fun(&tmp_dir, &student_name_dir_path, &archive_file_path)
                 .with_context(|| format!("Unable to extract {archive_file_path:?}"))?;
