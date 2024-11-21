@@ -2,6 +2,13 @@
 
 This is a wrapper for the [jplag plagiarism detection tool.](https://github.com/jplag/JPlag)
 
+# Prerequisites
+
+- [jplag](https://github.com/jplag/JPlag/releases) (preferably `v5.1.0` as this is confirmed working)
+- java
+- basic command line knowledge
+- a zip file with submissions
+
 # Usage
 
 - For the cli usage use `--help`, or `-h` for compact
