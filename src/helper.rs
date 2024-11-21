@@ -5,11 +5,28 @@ use std::fmt::Debug;
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
-use std::process::Child;
-use anyhow::Context;
+use std::process::{Child, Command, Stdio};
+use anyhow::{anyhow, Context};
 use tracing::{debug, info, warn};
 use walkdir::WalkDir;
 use zip::ZipArchive;
+
+pub fn check_java_executable() -> anyhow::Result<()> {
+    let mut child = Command::new("java")
+        .arg("--version")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .with_context(|| "Unable to start to run `java --version`")?;
+
+    if child.wait()
+            .with_context(|| "Unable to wait for `java --version`")?
+        .success() {
+        Ok(())
+    } else {
+        Err(anyhow!("Unable to run `java --version`, java is probably not installed"))
+    }
+}
 
 pub fn unzip_to<P, Q>(zip: P, dest: Q) -> anyhow::Result<()>
 where
