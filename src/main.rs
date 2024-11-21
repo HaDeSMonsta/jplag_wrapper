@@ -30,6 +30,13 @@ fn main() -> Result<()> {
         .with_context(|| "setting default subscriber failed")?;
     debug!("Default subscriber is set");
 
+    info!("Checking if java is executable");
+
+    helper::check_java_executable()
+        .with_context(|| "Check if java is executable failed")?;
+
+    info!("Check successful");
+
     let (
         source_file,
         temp_dir,
@@ -65,7 +72,7 @@ fn main() -> Result<()> {
         info!("Cleaning up");
         cleanup(&temp_dir)
             .with_context(|| "Cleanup failed")?;
-        info!("Finished cleaning up, goodbye! ({} ms)", start.elapsed().as_millis());
+        info!("Finished cleanup, goodbye! ({} ms)", start.elapsed().as_millis());
     }
 
     #[cfg(debug_assertions)]
@@ -154,7 +161,7 @@ where
                             {archive:?}"))?;
                     }
                     continue;
-                },
+                }
             };
             fun(&tmp_dir, &student_name_dir_path, &archive_file_path)
                 .with_context(|| format!("Unable to extract {archive_file_path:?}"))?;
@@ -183,7 +190,6 @@ where
     info!("Unzipped all submissions, Sanitizing output");
     helper::sanitize_submissions(&tmp_dir)
         .with_context(|| "Unable to sanitize output")?;
-    info!("Sanitized output, running jplag (I hope you have java installed)");
 
     let mut dbg_cmd = format!("java -jar {jplag_jar}");
 
