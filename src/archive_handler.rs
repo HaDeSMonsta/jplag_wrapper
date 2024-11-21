@@ -1,4 +1,6 @@
 use std::fs;
+use std::fs::File;
+use std::io::BufReader;
 use std::path::Path;
 use anyhow::Context;
 use tracing::debug;
@@ -114,16 +116,23 @@ where
     Ok(())
 }
 
-pub fn tar<P, Q, R>(tmp_dir: P, student_name_dir_path: Q, archive_file_path: R)
+pub fn tar<P, Q, R>(_tmp_dir: P, student_name_dir_path: Q, archive_file_path: R)
     -> anyhow::Result<()>
 where
     P: AsRef<Path>,
     Q: AsRef<Path>,
     R: AsRef<Path>,
 {
-    let tmp_dir = tmp_dir.as_ref();
     let student_name_dir_path = student_name_dir_path.as_ref();
     let archive_file_path = archive_file_path.as_ref();
 
-    todo!("Tar not implemented");
+    tar::Archive::new(
+        BufReader::new(
+            File::open(&archive_file_path)
+                .with_context(|| format!("Unable to open tar {archive_file_path:?}"))?
+        )).unpack(&student_name_dir_path)
+          .with_context(|| format!("Unable to untar {archive_file_path:?} \
+        into {student_name_dir_path:?}"))?;
+
+    Ok(())
 }
