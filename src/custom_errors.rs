@@ -12,3 +12,9 @@ pub enum FileNotFoundError {
     IgnoreFileNotFound(String),
 }
 
+#[derive(Debug, Error)]
+pub enum SubCmdError {
+    #[error("Jplag failed with exit code {0}")]
+    JplagExecFailure(i32),
+}
+

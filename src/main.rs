@@ -213,6 +213,8 @@ where
 
     if !status.success() {
         warn!("Command failed, {status}");
+        // Do not clean up on purpose, wwe want to see what caused the error
+        Err(custom_errors::SubCmdError::JplagExecFailure(status.code().unwrap()).into())
     } else {
         info!("{status}");
         #[cfg(not(feature = "legacy"))]
@@ -225,9 +227,8 @@ where
             let result_file = current_dir.join(format!("{result_dir}/index.html"));
             info!("Look at the results by opening file://{} in your browser", result_file.display());
         }
+        Ok(())
     }
-
-    Ok(())
 }
 
 #[cfg(not(debug_assertions))]
