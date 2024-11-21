@@ -140,21 +140,15 @@ where
                                                      .and_then(|e| e.to_str())
                                                      .and_then(|e| Some(e.to_ascii_lowercase()));
 
-            match archive_extension {
-                Some(ref s) if s == "zip" => archive_handler::zip(
-                    &tmp_dir,
-                    &student_name_dir_path,
-                    &archive_file_path,
-                ),
-                Some(ref s) if s == "rar" => archive_handler::rar(
-                    &tmp_dir,
-                    &student_name_dir_path,
-                    &archive_file_path,
-                ),
-                //Some(ref s) if s == "7z" => archive_handler::sz(),
-                //Some(ref s) if s == "tar" => archive_handler::tar(),
+            let fun = match archive_extension {
+                Some(ref s) if s == "zip" => archive_handler::zip,
+                Some(ref s) if s == "rar" => archive_handler::rar,
+                Some(ref s) if s == "7z" => archive_handler::sz,
+                Some(ref s) if s == "tar" => archive_handler::tar,
                 _ => continue,
-            }.with_context(|| format!("Unable to extract {archive_file_path:?}"))?;
+            };
+            fun(&tmp_dir, &student_name_dir_path, &archive_file_path)
+                .with_context(|| format!("Unable to extract {archive_file_path:?}"))?;
 
             assert_eq!(
                 archive_count,
