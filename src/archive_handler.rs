@@ -1,5 +1,6 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::fs::File;
+use std::path::Path;
 use anyhow::Context;
 use tracing::debug;
 use crate::helper;
@@ -93,18 +94,25 @@ where
     Ok(())
 }
 
-pub fn sz<P, Q, R>(tmp_dir: P, student_name_dir_path: Q, archive_file_path: R)
+pub fn sz<P, Q, R>(_tmp_dir: P, student_name_dir_path: Q, archive_file_path: R)
     -> anyhow::Result<()>
 where
     P: AsRef<Path>,
     Q: AsRef<Path>,
     R: AsRef<Path>,
 {
-    let tmp_dir = tmp_dir.as_ref();
     let student_name_dir_path = student_name_dir_path.as_ref();
     let archive_file_path = archive_file_path.as_ref();
 
-    todo!("7z not implemented");
+    debug!("Extracting 7z {archive_file_path:?} to {student_name_dir_path:?}");
+
+    sevenz_rust::decompress_file(archive_file_path, student_name_dir_path)
+        .with_context(|| format!("Unable to decompress {student_name_dir_path:?}"))?;
+
+    fs::remove_file(&archive_file_path)
+        .with_context(|| format!("Unable to remove {archive_file_path:?} after extracting"))?;
+
+    Ok(())
 }
 
 pub fn tar<P, Q, R>(tmp_dir: P, student_name_dir_path: Q, archive_file_path: R)
