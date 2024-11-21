@@ -9,7 +9,7 @@ use crate::helper;
 // archive file path: tmp/name/archive
 // zip dir name: name/
 
-pub fn zip(tmp_dir: &Path, student_name_dir_path: &PathBuf, archive_file_path: &PathBuf)
+pub fn zip(tmp_dir: &Path, student_name_dir_path: &PathBuf, archive_file_path: &Path)
     -> anyhow::Result<()>
 {
     let zip_dir_name = student_name_dir_path.file_name()
@@ -40,7 +40,7 @@ pub fn zip(tmp_dir: &Path, student_name_dir_path: &PathBuf, archive_file_path: &
     Ok(())
 }
 
-pub fn rar(tmp_dir: &Path, student_name_dir_path: &PathBuf, archive_file_path: &PathBuf)
+pub fn rar(tmp_dir: &Path, student_name_dir_path: &PathBuf, archive_file_path: &Path)
     -> anyhow::Result<()>
 {
     let mut archive = unrar::Archive::new(&archive_file_path)

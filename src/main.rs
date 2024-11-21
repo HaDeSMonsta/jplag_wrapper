@@ -15,6 +15,7 @@ use tracing::{debug, info, warn};
 #[cfg(debug_assertions)]
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
+use walkdir::WalkDir;
 
 fn main() -> Result<()> {
     let start = Instant::now();
@@ -120,6 +121,8 @@ where
     info!("Extracting individual submissions");
     let tmp_dir = tmp_dir.as_ref();
 
+    let mut no_zip = vec![];
+
     for dir in fs::read_dir(tmp_dir)
         .with_context(|| format!("Unable to read {tmp_dir:?}"))? {
         let dir = dir.with_context(|| format!("Unable to read a dir in {tmp_dir:?}"))?;
@@ -129,7 +132,7 @@ where
         assert!(student_name_dir_path.is_dir(), "Everything in {tmp_dir:?} should be a dir, found {student_name_dir_path:?}");
 
         let mut archive_count = 0u8;
-        for archive in fs::read_dir(&student_name_dir_path)? {
+        for archive in WalkDir::new(&student_name_dir_path) {
             let archive = archive?;
             let archive_file_path = archive.path();
 
@@ -148,8 +151,8 @@ where
                     &student_name_dir_path,
                     &archive_file_path,
                 ),
-                Some(ref s) if s == "7z" => archive_handler::sz(),
-                Some(ref s) if s == "tar" => archive_handler::tar(),
+                //Some(ref s) if s == "7z" => archive_handler::sz(),
+                //Some(ref s) if s == "tar" => archive_handler::tar(),
                 _ => continue,
             }.with_context(|| format!("Unable to extract {archive_file_path:?}"))?;
 
@@ -163,10 +166,15 @@ where
             archive_count += 1;
         }
         if archive_count != 1 {
-            return Err(custom_errors::InvalidSubmissionsError::NoZipFileFound(
-                String::from(student_name_dir_path.to_string_lossy())
-            ).into());
+            no_zip.push(student_name_dir_path.to_owned());
         }
+    }
+
+    for no_zip_student in no_zip {
+        warn!("No zip file found in {no_zip_student:?}, removing path");
+        fs::remove_dir_all(&no_zip_student)
+            .with_context(|| format!("Unable to remove path o student who didn't \
+            hand in an assignment: {no_zip_student:?}"))?;
     }
 
     info!("Unzipped all submissions, Sanitizing output");
