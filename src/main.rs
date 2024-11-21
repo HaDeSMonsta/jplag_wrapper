@@ -1,6 +1,7 @@
 mod config;
 mod helper;
 mod custom_errors;
+mod archive_handler;
 
 use std::fmt::Debug;
 use std::fs;
@@ -127,52 +128,41 @@ where
 
         assert!(student_name_dir_path.is_dir(), "Everything in {tmp_dir:?} should be a dir, found {student_name_dir_path:?}");
 
-        let mut zip_count = 0u8;
-        for zip_entry in fs::read_dir(&student_name_dir_path)? {
-            let zip_entry = zip_entry?;
-            let zip_file_path = zip_entry.path();
+        let mut archive_count = 0u8;
+        for archive in fs::read_dir(&student_name_dir_path)? {
+            let archive = archive?;
+            let archive_file_path = archive.path();
 
-            if zip_file_path.extension()
-                            .and_then(|e| e.to_str())
-                            .and_then(|e| Some(e.to_ascii_lowercase()))
-                != Some(String::from("zip")) {
-                continue;
-            }
+            let archive_extension = archive_file_path.extension()
+                                                     .and_then(|e| e.to_str())
+                                                     .and_then(|e| Some(e.to_ascii_lowercase()));
+
+            match archive_extension {
+                Some(ref s) if s == "zip" => archive_handler::zip(
+                    &tmp_dir,
+                    &student_name_dir_path,
+                    &archive_file_path,
+                ),
+                Some(ref s) if s == "rar" => archive_handler::rar(
+                    &tmp_dir,
+                    &student_name_dir_path,
+                    &archive_file_path,
+                ),
+                Some(ref s) if s == "7z" => archive_handler::sz(),
+                Some(ref s) if s == "tar" => archive_handler::tar(),
+                _ => continue,
+            }.with_context(|| format!("Unable to extract {archive_file_path:?}"))?;
 
             assert_eq!(
-                zip_count,
+                archive_count,
                 0,
-                "Expected to find exactly one zip file, found more: {:?}",
-                zip_file_path
+                "Expected to find exactly one archive file, found more: {:?}",
+                archive_file_path
             );
-            zip_count += 1;
 
-            let zip_dir_name = student_name_dir_path.file_name()
-                                                    .and_then(|f| f.to_str())
-                                                    .with_context(|| format!("Unable to get file name of {:?}", student_name_dir_path))?;
-
-            // let zip_target_dir = format!("{zip_dir_name}/out");
-            let zip_target_dir = zip_dir_name;
-            let dest = tmp_dir.join(&zip_target_dir);
-
-            debug!("Set destination of unzipped file to {dest:?}");
-
-            fs::create_dir_all(&dest)
-                .with_context(|| format!("Unable to create {tmp_dir:?}"))?;
-
-            debug!("Created {dest:?}");
-
-            helper::unzip_to(&zip_file_path, &dest)
-                .with_context(|| format!("Unable to unzip {zip_file_path:?} to {dest:?}"))?;
-
-            debug!("Unzipped {zip_file_path:?} to {dest:?}");
-
-            fs::remove_file(&zip_file_path)
-                .with_context(|| format!("Unable to remove {zip_file_path:?}"))?;
-
-            debug!("Removed {zip_file_path:?}");
+            archive_count += 1;
         }
-        if zip_count != 1 {
+        if archive_count != 1 {
             return Err(custom_errors::InvalidSubmissionsError::NoZipFileFound(
                 String::from(student_name_dir_path.to_string_lossy())
             ).into());

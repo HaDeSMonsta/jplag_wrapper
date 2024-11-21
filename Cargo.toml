@@ -13,7 +13,10 @@ tracing-subscriber = "0.3.18"
 clap = { version = "4.5.21", features = ["derive"] }
 serde = { version = "1.0.215", features = ["derive"] }
 toml = "0.8.1"
-thiserror = "2.0.3"
 anyhow = "1.0.93"
-zip = "2.2.0"
+thiserror = "2.0.3"
 walkdir = "2.5.0"
+zip = "2.2.0"
+tar = "0.4.43"
+sevenz-rust = "0.6.1"
+unrar = "0.5.6"
