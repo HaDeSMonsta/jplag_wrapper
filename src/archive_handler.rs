@@ -2,7 +2,7 @@ use std::fs;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
-use anyhow::Context;
+use anyhow::{Context, Result};
 use flate2::read::GzDecoder;
 use tracing::debug;
 use crate::helper;
@@ -13,7 +13,7 @@ use crate::helper;
 // zip dir name: name/
 
 pub fn zip<P, Q, R>(tmp_dir: P, student_name_dir_path: Q, archive_file_path: R)
-    -> anyhow::Result<()>
+    -> Result<()>
 where
     P: AsRef<Path>,
     Q: AsRef<Path>,
@@ -52,7 +52,7 @@ where
 }
 
 pub fn rar<P, Q, R>(tmp_dir: P, student_name_dir_path: Q, archive_file_path: R)
-    -> anyhow::Result<()>
+    -> Result<()>
 where
     P: AsRef<Path>,
     Q: AsRef<Path>,
@@ -97,7 +97,7 @@ where
 }
 
 pub fn sz<P, Q, R>(_tmp_dir: P, student_name_dir_path: Q, archive_file_path: R)
-    -> anyhow::Result<()>
+    -> Result<()>
 where
     P: AsRef<Path>,
     Q: AsRef<Path>,
@@ -118,7 +118,7 @@ where
 }
 
 pub fn tar<P, Q, R>(_tmp_dir: P, student_name_dir_path: Q, archive_file_path: R)
-    -> anyhow::Result<()>
+    -> Result<()>
 where
     P: AsRef<Path>,
     Q: AsRef<Path>,
@@ -147,7 +147,7 @@ where
     Ok(())
 }
 pub fn gz<P, Q, R>(_tmp_dir: P, student_name_dir_path: Q, archive_file_path: R)
-    -> anyhow::Result<()>
+    -> Result<()>
 where
     P: AsRef<Path>,
     Q: AsRef<Path>,

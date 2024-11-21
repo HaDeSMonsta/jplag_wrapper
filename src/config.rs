@@ -4,7 +4,7 @@ use std::{fs, io};
 use std::fs::OpenOptions;
 use std::io::{BufWriter, Write};
 use std::process::exit;
-use anyhow::Context;
+use anyhow::{Context, Result};
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info, warn};
@@ -152,7 +152,7 @@ pub fn get_log_level() -> Level {
 /// Parse args for the bin, prioritizes cli over toml
 ///
 /// Returns: (source, tmp_dir, target_dir, jplag_jar)
-pub fn parse_args() -> anyhow::Result<(String, String, String, String, Vec<String>, bool)> {
+pub fn parse_args() -> Result<(String, String, String, String, Vec<String>, bool)> {
     debug!("Getting args");
     let args = ARGS.clone();
     if args.init {
@@ -268,7 +268,7 @@ pub fn parse_args() -> anyhow::Result<(String, String, String, String, Vec<Strin
     Ok((source, tmp_dir, target_dir, jplag_jar, jplag_args, ignore_out))
 }
 
-fn parse_toml(file: &str, conf_file_name_overridden: bool) -> anyhow::Result<Config> {
+fn parse_toml(file: &str, conf_file_name_overridden: bool) -> Result<Config> {
     debug!("Parsing toml, source: {file}");
     if !fs::exists(&file)
         .with_context(|| format!("Unable to check if {file} exists"))? {
@@ -302,7 +302,7 @@ fn parse_toml(file: &str, conf_file_name_overridden: bool) -> anyhow::Result<Con
     )
 }
 
-fn dump_default_config() -> anyhow::Result<()> {
+fn dump_default_config() -> Result<()> {
     if fs::exists(DEFAULT_CONFIG_FILE)
         .with_context(|| format!("Unable to check if \"{DEFAULT_CONFIG_FILE}\" exists"))? {
         warn!("\"{DEFAULT_CONFIG_FILE}\" already exists, do you want to override it? [Y/n]");

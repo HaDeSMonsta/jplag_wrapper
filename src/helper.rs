@@ -6,12 +6,12 @@ use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, Context, Result};
 use tracing::{debug, info, warn};
 use walkdir::WalkDir;
 use zip::ZipArchive;
 
-pub fn check_java_executable() -> anyhow::Result<()> {
+pub fn check_java_executable() -> Result<()> {
     let mut child = Command::new("java")
         .arg("--version")
         .stdout(Stdio::null())
@@ -28,7 +28,7 @@ pub fn check_java_executable() -> anyhow::Result<()> {
     }
 }
 
-pub fn unzip_to<P, Q>(zip: P, dest: Q) -> anyhow::Result<()>
+pub fn unzip_to<P, Q>(zip: P, dest: Q) -> Result<()>
 where
     P: AsRef<Path> + Debug,
     Q: AsRef<Path>,
@@ -89,7 +89,7 @@ where
 
 // NOTE The logging in here might be a little bit ambiguous (especially logging all files that aren't a match)
 /// Fuck Apple
-pub fn sanitize_submissions<P>(path: P) -> anyhow::Result<()>
+pub fn sanitize_submissions<P>(path: P) -> Result<()>
 where
     P: AsRef<Path> + Debug,
 {
@@ -135,7 +135,7 @@ where
     Ok(())
 }
 
-pub fn listen_for_output(program: &mut Child, ignore_output: bool) -> anyhow::Result<()> {
+pub fn listen_for_output(program: &mut Child, ignore_output: bool) -> Result<()> {
     match program.stdout {
         Some(ref mut out) => {
             let reader = BufReader::new(out);
