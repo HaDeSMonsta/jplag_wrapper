@@ -9,9 +9,17 @@ use crate::helper;
 // archive file path: tmp/name/archive
 // zip dir name: name/
 
-pub fn zip(tmp_dir: &Path, student_name_dir_path: &PathBuf, archive_file_path: &Path)
+pub fn zip<P, Q, R>(tmp_dir: P, student_name_dir_path: Q, archive_file_path: R)
     -> anyhow::Result<()>
+where
+    P: AsRef<Path>,
+    Q: AsRef<Path>,
+    R: AsRef<Path>,
 {
+    let tmp_dir = tmp_dir.as_ref();
+    let student_name_dir_path = student_name_dir_path.as_ref();
+    let archive_file_path = archive_file_path.as_ref();
+
     let zip_dir_name = student_name_dir_path.file_name()
                                             .and_then(|f| f.to_str())
                                             .with_context(|| format!("Unable to get file name of {:?}", student_name_dir_path))?;
@@ -40,9 +48,17 @@ pub fn zip(tmp_dir: &Path, student_name_dir_path: &PathBuf, archive_file_path: &
     Ok(())
 }
 
-pub fn rar(tmp_dir: &Path, student_name_dir_path: &PathBuf, archive_file_path: &Path)
+pub fn rar<P, Q, R>(tmp_dir: P, student_name_dir_path: Q, archive_file_path: R)
     -> anyhow::Result<()>
+where
+    P: AsRef<Path>,
+    Q: AsRef<Path>,
+    R: AsRef<Path>,
 {
+    let tmp_dir = tmp_dir.as_ref();
+    let student_name_dir_path = student_name_dir_path.as_ref();
+    let archive_file_path = archive_file_path.as_ref();
+
     let mut archive = unrar::Archive::new(&archive_file_path)
         .open_for_processing()
         .with_context(|| format!("Unable to open {archive_file_path:?}"))?;
@@ -77,10 +93,30 @@ pub fn rar(tmp_dir: &Path, student_name_dir_path: &PathBuf, archive_file_path: &
     Ok(())
 }
 
-pub fn sz() -> anyhow::Result<()> {
-    todo!();
+pub fn sz<P, Q, R>(tmp_dir: P, student_name_dir_path: Q, archive_file_path: R)
+    -> anyhow::Result<()>
+where
+    P: AsRef<Path>,
+    Q: AsRef<Path>,
+    R: AsRef<Path>,
+{
+    let tmp_dir = tmp_dir.as_ref();
+    let student_name_dir_path = student_name_dir_path.as_ref();
+    let archive_file_path = archive_file_path.as_ref();
+
+    todo!("7z not implemented");
 }
 
-pub fn tar() -> anyhow::Result<()> {
-    todo!();
+pub fn tar<P, Q, R>(tmp_dir: P, student_name_dir_path: Q, archive_file_path: R)
+    -> anyhow::Result<()>
+where
+    P: AsRef<Path>,
+    Q: AsRef<Path>,
+    R: AsRef<Path>,
+{
+    let tmp_dir = tmp_dir.as_ref();
+    let student_name_dir_path = student_name_dir_path.as_ref();
+    let archive_file_path = archive_file_path.as_ref();
+
+    todo!("Tar not implemented");
 }
