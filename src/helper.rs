@@ -70,6 +70,7 @@ where
     Ok(())
 }
 
+// NOTE The logging in here might be a little bit ambiguous (especially logging all files that aren't a match)
 /// Fuck Apple
 pub fn sanitize_submissions<P>(path: P) -> anyhow::Result<()>
 where
@@ -79,7 +80,7 @@ where
     let mut to_remove = HashSet::new();
 
     debug!("Removing MACOSX paths");
-    
+
     for entry in WalkDir::new(&path) {
         let entry = entry.with_context(|| format!("Invalid entry in {path:?}"))?;
         let path = entry.path();
@@ -113,13 +114,6 @@ where
         fs::remove_file(&entry)
             .with_context(|| format!("Unable to remove {entry:?}"))?;
     }
-
-    /*for entry in fs::read_dir(&path)
-        .with_context(|| format!("Unable to read dir: {path:?}"))? {
-        let entry = entry.with_context(|| format!("Invalid entry in {path:?}"))?;
-        let mac_dir = entry.path().join("__MACOSX");
-        let _ = fs::remove_dir_all(&mac_dir);
-    }*/
 
     Ok(())
 }
