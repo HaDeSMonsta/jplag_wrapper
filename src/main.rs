@@ -5,9 +5,8 @@ mod archive_handler;
 
 use std::fmt::Debug;
 use std::fs;
-#[cfg(feature = "legacy")]
 use std::env;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Instant;
 use anyhow::{anyhow, Context, Result};
@@ -232,13 +231,28 @@ fn run(
         Err(custom_errors::SubCmdError::JplagExecFailure(status.code().unwrap()).into())
     } else {
         info!("{status}");
+        let current_dir = env::current_dir()
+            .with_context(|| "Unable to get current dir")?;
         #[cfg(not(feature = "legacy"))]
-        info!("Look at the results by uploading the file in {result_dir} to \
-        https://jplag.github.io/JPlag/");
+        {
+            let result_dir = current_dir.join(result_dir);
+
+            let mut result_file = PathBuf::from(format!("Something went wrong, \
+            there seems to be no result in {result_dir:?}"));
+
+            // This dir should only contain exactly one file
+            for file in fs::read_dir(&result_dir)
+                .with_context(|| format!("Unable to read result dir {result_dir:?}"))? {
+                let file = file
+                    .with_context(|| format!("Invalid file in {result_dir:?}"))?;
+                result_file = file.path();
+            }
+
+            info!("Look at the results by uploading {result_file:?} to \
+            https://jplag.github.io/JPlag/");
+        }
         #[cfg(feature = "legacy")]
         {
-            let current_dir = env::current_dir()
-                .with_context(|| "Unable to get current dir")?;
             let result_file = current_dir.join(format!("{result_dir}/index.html"));
             info!("Look at the results by opening file://{} in your browser", result_file.display());
         }
