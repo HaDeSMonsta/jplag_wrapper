@@ -10,7 +10,7 @@ use std::env;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::Instant;
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use tracing::{debug, info, warn};
 #[cfg(debug_assertions)]
 use tracing::Level;
@@ -57,6 +57,8 @@ fn main() -> Result<()> {
     info!("Initializing project");
     init(&source_file, &result_dir, &temp_dir, &jplag_jar)
         .with_context(|| "Initialization failed")?;
+    
+    prepare();
 
     run(
         &result_dir,
@@ -115,6 +117,10 @@ where
     Ok(())
 }
 
+fn prepare() {
+    todo!();
+}
+
 fn run<P>(
     result_dir: &str,
     tmp_dir: P,
@@ -138,7 +144,8 @@ where
 
         assert!(student_name_dir_path.is_dir(), "Everything in {tmp_dir:?} should be a dir, found {student_name_dir_path:?}");
 
-        let mut archive_count = 0u8;
+        let mut archive_file = None;
+        let mut fun: fn(_, _, _) -> Result<()> = archive_handler::dummy;
         for archive in WalkDir::new(&student_name_dir_path) {
             let archive = archive?;
             let archive_file_path = archive.path();
@@ -147,7 +154,7 @@ where
                                                      .and_then(|e| e.to_str())
                                                      .and_then(|e| Some(e.to_ascii_lowercase()));
 
-            let fun = match archive_extension {
+            fun = match archive_extension {
                 Some(ref s) if s == "zip" => archive_handler::zip,
                 Some(ref s) if s == "rar" => archive_handler::rar,
                 Some(ref s) if s == "7z" => archive_handler::sz,
@@ -163,21 +170,24 @@ where
                     continue;
                 }
             };
-            fun(&tmp_dir, &student_name_dir_path, &archive_file_path)
-                .with_context(|| format!("Unable to extract {archive_file_path:?}"))?;
-
-            assert_eq!(
-                archive_count,
-                0,
-                "Expected to find exactly one archive file, found more: {:?}",
-                archive_file_path
-            );
-
-            archive_count += 1;
+            if let Some(file) = archive_file {
+                return Err(anyhow!("Found multiple archive files, expected one:\n\
+                \tFirst: {file:?}\n\
+                \tSecond: {archive_file_path:?}"));
+            }
+            archive_file = Some(archive_file_path.to_owned());
         }
-        if archive_count != 1 {
+
+        let Some(archive_file) = archive_file else {
+            fs::remove_dir_all(&student_name_dir_path)
+                .with_context(|| format!("Unable to remove \
+                submission without archive: {student_name_dir_path:?}"))?;
             no_zip.push(student_name_dir_path.to_owned());
-        }
+            continue;
+        };
+
+        fun(&tmp_dir, &student_name_dir_path, &archive_file)
+            .with_context(|| format!("Unable to extract {archive_file:?}"))?;
     }
 
     for no_zip_student in no_zip {
