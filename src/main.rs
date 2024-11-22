@@ -57,12 +57,12 @@ fn main() -> Result<()> {
     info!("Initializing project");
     init(&source_file, &result_dir, &temp_dir, &jplag_jar)
         .with_context(|| "Initialization failed")?;
-    
-    prepare();
+
+    prepare(&temp_dir)
+        .with_context(|| "Preparing submissions failed")?;
 
     run(
         &result_dir,
-        &temp_dir,
         &jplag_jar,
         jplag_args,
         ignore_jplag_output,
@@ -117,17 +117,7 @@ where
     Ok(())
 }
 
-fn prepare() {
-    todo!();
-}
-
-fn run<P>(
-    result_dir: &str,
-    tmp_dir: P,
-    jplag_jar: &str,
-    jplag_args: Vec<String>,
-    ignore_jplag_output: bool,
-) -> Result<()>
+fn prepare<P>(tmp_dir: P) -> Result<()>
 where
     P: AsRef<Path>,
 {
@@ -193,7 +183,7 @@ where
     for no_zip_student in no_zip {
         warn!("No zip file found in {no_zip_student:?}, removing path");
         fs::remove_dir_all(&no_zip_student)
-            .with_context(|| format!("Unable to remove path o student who didn't \
+            .with_context(|| format!("Unable to remove path of student who didn't \
             hand in an assignment: {no_zip_student:?}"))?;
     }
 
@@ -201,6 +191,15 @@ where
     helper::sanitize_submissions(&tmp_dir)
         .with_context(|| "Unable to sanitize output")?;
 
+    Ok(())
+}
+
+fn run(
+    result_dir: &str,
+    jplag_jar: &str,
+    jplag_args: Vec<String>,
+    ignore_jplag_output: bool,
+) -> Result<()> {
     let mut dbg_cmd = format!("java -jar {jplag_jar}");
 
     for str in &jplag_args {
