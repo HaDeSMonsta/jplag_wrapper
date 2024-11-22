@@ -6,7 +6,10 @@ mod archive_handler;
 use std::fmt::Debug;
 use std::fs;
 use std::env;
+#[cfg(not(feature = "legacy"))]
 use std::path::{Path, PathBuf};
+#[cfg(feature = "legacy")]
+use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::Instant;
 use anyhow::{anyhow, Context, Result};
