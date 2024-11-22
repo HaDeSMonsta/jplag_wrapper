@@ -2,7 +2,7 @@ use std::fs;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use flate2::read::GzDecoder;
 use tracing::debug;
 use crate::helper;
@@ -178,4 +178,13 @@ where
     debug!("Successfully removed {archive_file_path:?}");
 
     Ok(())
+}
+pub fn dummy<P, Q, R>(_tmp_dir: P, _student_name_dir_path: Q, _archive_file_path: R)
+    -> Result<()>
+where
+    P: AsRef<Path>,
+    Q: AsRef<Path>,
+    R: AsRef<Path>,
+{
+    Err(anyhow!("Called dummy extract function => `fun` was not initialized"))
 }
