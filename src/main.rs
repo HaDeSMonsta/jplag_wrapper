@@ -230,6 +230,7 @@ fn run(
 
     if !status.success() {
         warn!("Command failed, {status}");
+        warn!("To debug manually, run \"{dbg_cmd}\" in the current directory");
         // Do not clean up on purpose, wwe want to see what caused the error
         Err(custom_errors::SubCmdError::JplagExecFailure(status.code().unwrap()).into())
     } else {
