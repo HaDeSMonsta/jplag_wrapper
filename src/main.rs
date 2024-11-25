@@ -32,13 +32,6 @@ fn main() -> Result<()> {
         .with_context(|| "setting default subscriber failed")?;
     debug!("Default subscriber is set");
 
-    info!("Checking if java is executable");
-
-    helper::check_java_executable()
-        .with_context(|| "Check if java is executable failed")?;
-
-    info!("Check successful");
-
     let (
         source_file,
         temp_dir,
@@ -55,6 +48,13 @@ fn main() -> Result<()> {
     jplag_jar={jplag_jar}, \
     jplag_args={jplag_args:?}, \
     ignore_jplag_output={ignore_jplag_output}");
+
+    info!("Checking if java is executable");
+
+    helper::check_java_executable()
+        .with_context(|| "Check if java is executable failed")?;
+
+    info!("Check successful");
 
     info!("Initializing project");
     init(&source_file, &result_dir, &temp_dir, &jplag_jar)
