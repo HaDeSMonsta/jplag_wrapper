@@ -70,7 +70,7 @@ where
                                             .and_then(|f| f.to_str())
                                             .with_context(|| format!("Unable to get file name of {:?}", student_name_dir_path))?;
 
-    let dest = tmp_dir.join(format!("{}/", &rar_dir_name));
+    let dest = tmp_dir.join(format!("{rar_dir_name}/"));
 
     fs::create_dir_all(&dest)
         .with_context(|| format!("Unable to create dest dir {dest:?}"))?;
@@ -79,14 +79,16 @@ where
                                     .with_context(|| format!("Unable to read header of {archive_file_path:?}"))? {
         let src_name = header.entry().filename.to_string_lossy().to_string();
         let dest_name = format!("{}/{src_name}", dest.display());
-        debug!("{} bytes: {}", header.entry().unpacked_size, src_name);
+        debug!("{} bytes: {src_name}", header.entry().unpacked_size);
 
         archive = if header.entry().is_file() {
             debug!("Unpacking {} to {dest_name}", format!("{}{src_name}", tmp_dir.display()));
-            header.extract_to(&dest_name)?
+            header.extract_to(&dest_name)
+                  .with_context(|| format!("Unable to unrar {src_name} to {dest_name}"))?
         } else {
-            debug!("Skipping, is dir");
-            header.skip()?
+            debug!("Skipping {src_name}, is dir");
+            header.skip()
+                  .with_context(|| format!("Unable to skip rar {src_name}"))?
         }
     }
 
