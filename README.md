@@ -4,6 +4,7 @@ This is a wrapper for the [jplag plagiarism detection tool.](https://github.com/
 
 # Prerequisites
 
+- If you want to use the `legacy` feature, or the latest changes, you will need [rust](https://rustup.rs/)
 - [jplag](https://github.com/jplag/JPlag/releases) (preferably `v5.1.0` as this is confirmed working)
 - java
 - basic command line knowledge
