@@ -1,4 +1,3 @@
-use std::cell::LazyCell;
 use std::fmt::Debug;
 use std::{fs, io};
 use std::fs::OpenOptions;
@@ -13,7 +12,6 @@ use tracing::Level;
 
 use crate::custom_errors;
 
-const ARGS: LazyCell<Args> = LazyCell::new(|| Args::parse());
 const DEFAULT_CONFIG_FILE: &str = "config.toml";
 const DEFAULT_SOURCE_FILE: &str = "submissions.zip";
 const DEFAULT_JPLAG_FILE: &str = "jplag.jar";
@@ -142,7 +140,7 @@ struct Config {
 
 #[cfg(not(debug_assertions))]
 pub fn get_log_level() -> Level {
-    if ARGS.debug {
+    if Args::parse().debug {
         Level::DEBUG
     } else {
         Level::INFO
@@ -154,7 +152,7 @@ pub fn get_log_level() -> Level {
 /// Returns: (source, tmp_dir, target_dir, jplag_jar)
 pub fn parse_args() -> Result<(String, String, String, String, Vec<String>, bool)> {
     debug!("Getting args");
-    let args = ARGS.clone();
+    let args = Args::parse();
     if args.init {
         debug!("Initializing config");
         dump_default_config()
@@ -367,3 +365,4 @@ fn dump_default_config() -> Result<()> {
 
     Ok(())
 }
+
