@@ -106,13 +106,23 @@ struct Args {
     /// Will panic, if file does not exist
     #[clap(short, long)]
     jplag_jar: Option<String>,
-    /// Everything else before `--`
+    /// Additional submission directories (if you read this with -h,
+    /// use --help for full docs)
     ///
-    /// Will be ignored
-    ignored: Vec<String>,
+    /// A list of additional submissions
+    /// which will be treated exactly like normal submissions
+    ///
+    /// This means no validation will be performed,
+    /// except for checking that each input exists and is a directory
+    ///
+    /// In practise, we will just copy all directories into {{tmp_dir}}
+    /// after extracting the {{source_zip}} file
+    ///
+    /// Expected structure: foo/bar[.zip|.tar|.tar.gz|.rawr]
+    ///
+    /// Expected input: foo/
+    add_sub_dirs: Vec<String>,
     #[cfg(not(feature = "legacy"))]
-    /// Everything after `--`
-    ///
     /// Will be passed directly to jplag as arguments
     ///
     /// Defaults to `{{tmp_dir}} -r {{target_dir}}/results.zip -l java`
@@ -149,8 +159,9 @@ pub fn get_log_level() -> Level {
 
 /// Parse args for the bin, prioritizes cli over toml
 ///
-/// Returns: (source, tmp_dir, target_dir, jplag_jar)
-pub fn parse_args() -> Result<(String, String, String, String, Vec<String>, bool)> {
+/// Returns: (source, tmp_dir, target_dir, jplag_jar, jplag_args, ignore_jplag_output,
+/// additional_submission_dirs)
+pub fn parse_args() -> Result<(String, String, String, String, Vec<String>, bool, Vec<String>)> {
     debug!("Getting args");
     let args = Args::parse();
     if args.init {
@@ -192,9 +203,9 @@ pub fn parse_args() -> Result<(String, String, String, String, Vec<String>, bool
 
     debug!("Set target dir to {target_dir}");
 
-    let ignore_out = args.ignore_output;
+    let ignore_jplag_out = args.ignore_output;
 
-    debug!("Ignore jplag output: {ignore_out}");
+    debug!("Ignore jplag output: {ignore_jplag_out}");
 
     let jplag_jar = args.jplag_jar
                         .unwrap_or_else(|| {
@@ -261,9 +272,21 @@ pub fn parse_args() -> Result<(String, String, String, String, Vec<String>, bool
 
     debug!("Set jplag args to {jplag_args:?}");
 
+    let additional_submission_dirs = args.add_sub_dirs;
+
+    debug!("Additional submission dirs: {additional_submission_dirs:?}");
+
     info!("Successfully parsed config");
 
-    Ok((source, tmp_dir, target_dir, jplag_jar, jplag_args, ignore_out))
+    Ok((
+        source,
+        tmp_dir,
+        target_dir,
+        jplag_jar,
+        jplag_args,
+        ignore_jplag_out,
+        additional_submission_dirs,
+    ))
 }
 
 fn parse_toml(file: &str, conf_file_name_overridden: bool) -> Result<Config> {
