@@ -39,6 +39,7 @@ fn main() -> Result<()> {
         jplag_jar,
         jplag_args,
         ignore_jplag_output,
+        additional_submission_dirs,
     ) = config::parse_args()
         .with_context(|| "Unable to parse args")?;
     debug!("Full config: \
@@ -47,7 +48,8 @@ fn main() -> Result<()> {
     results_dir={result_dir}, \
     jplag_jar={jplag_jar}, \
     jplag_args={jplag_args:?}, \
-    ignore_jplag_output={ignore_jplag_output}");
+    ignore_jplag_output={ignore_jplag_output}, \
+    additional_submission_dirs={additional_submission_dirs:?}");
 
     info!("Checking if java is executable");
 
@@ -57,7 +59,7 @@ fn main() -> Result<()> {
     info!("Check successful");
 
     info!("Initializing project");
-    init(&source_file, &result_dir, &temp_dir, &jplag_jar)
+    init(&source_file, &result_dir, &temp_dir, &jplag_jar, &additional_submission_dirs)
         .with_context(|| "Initialization failed")?;
 
     prepare(&temp_dir)
@@ -85,7 +87,13 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn init<P, Q, R>(source_file: P, result_dir: Q, tmp_dir: R, jplag_jar: &str) -> Result<()>
+fn init<P, Q, R>(
+    source_file: P,
+    result_dir: Q,
+    tmp_dir: R,
+    jplag_jar: &str,
+    additional_submission_dirs: &Vec<String>,
+) -> Result<()>
 where
     P: AsRef<Path> + Debug + Into<String>,
     Q: AsRef<Path>,
@@ -113,6 +121,10 @@ where
 
     helper::unzip_to(&source_file, &tmp_dir)
         .with_context(|| format!("Unable to extract {source_file:?} to {tmp_dir:?}"))?;
+    
+    helper::add_subs(&additional_submission_dirs, &tmp_dir)
+        .with_context(|| format!("Unable to copy additional submissions \
+        {additional_submission_dirs:?} to {tmp_dir:?}"))?;
 
     info!("Unzipped {source_file:?} to {tmp_dir:?}");
 

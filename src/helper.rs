@@ -4,7 +4,7 @@ use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use anyhow::{anyhow, Context, Result};
 use tracing::{debug, info, warn};
@@ -81,6 +81,49 @@ where
                 .with_context(|| format!("Unable to io copy {src} to {out_file:?}",
                                          src = file.name()))?;
             debug!("IO copied {src} to {out_file:?}", src = file.name());
+        }
+    }
+
+    Ok(())
+}
+
+pub fn add_subs<P>(sub_dir_vec: &Vec<String>, tmp_dir: P) -> Result<()>
+where
+    P: AsRef<Path> + Debug,
+{
+    let tmp_dir = tmp_dir.as_ref();
+    debug!("Adding additional submissions"); // CONSIDER Info
+    for dir in sub_dir_vec {
+        debug!("Processing {dir}");
+        if !fs::exists(dir)
+            .with_context(|| format!("Unable to check if {dir} exists"))? {
+            return Err(anyhow!("{dir} doesn't exist"));
+        }
+        if !PathBuf::from(dir).is_dir() {
+            return Err(anyhow!("{dir} is not a directory"));
+        }
+
+        debug!("{dir} exists and is a dir, copying");
+
+        let tmp_root = tmp_dir.join(&dir);
+        fs::create_dir_all(&tmp_root)
+            .with_context(|| format!("Unable to create {tmp_root:?}"))?;
+
+        for entry in WalkDir::new(&dir) {
+            let entry = entry
+                .with_context(|| format!("Error processing entry in {dir}"))?;
+            let src_path = entry.path();
+            let dest_path = tmp_dir.join(&src_path);
+
+            debug!("Copying {src_path:?} to {dest_path:?}");
+
+            if src_path.is_dir() {
+                fs::create_dir_all(&dest_path)
+                    .with_context(|| format!("Unable to create path {dest_path:?}"))?;
+            } else {
+                fs::copy(&src_path, &dest_path)
+                    .with_context(|| format!("Unable to copy {src_path:?} to {dest_path:?}"))?;
+            }
         }
     }
 
