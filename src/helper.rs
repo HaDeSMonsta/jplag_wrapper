@@ -178,6 +178,47 @@ where
     Ok(())
 }
 
+pub fn sanitize_diacritic<P>(path: P) -> Result<()>
+where
+    P: AsRef<Path> + Debug,
+{
+    let replacements = [
+        ('Ä', "Ae"), ('ä', "ae"),
+        ('Ö', "Oe"), ('ö', "oe"),
+        ('Ü', "Ue"), ('ü', "ue"),
+        ('ß', "ss"),
+    ];
+
+    for entry in WalkDir::new(&path) {
+        let entry = entry.with_context(|| format!("Invalid entry in {path:?}"))?;
+
+        let file_path = entry.path();
+
+        if file_path.is_dir() || file_path.extension() != Some(OsStr::new("java")) { continue; }
+
+        debug!("Checking {file_path:?} for diacritics");
+
+        let content = fs::read_to_string(&file_path)
+            .with_context(|| format!("Unable to read {file_path:?}"))?;
+
+        let sanitized_content = replacements.iter()
+                                            .fold(content.clone(), |acc, &(from, to)| {
+                                                acc.replace(from, to)
+                                            });
+
+        if sanitized_content == content {
+            debug!("{file_path:?} did not contain diacritics");
+            continue;
+        }
+
+        debug!("{file_path:?} did contained diacritics, replacing content");
+        fs::write(&file_path, sanitized_content)
+            .with_context(|| format!("Unable to write to file {file_path:?}"))?
+    }
+
+    Ok(())
+}
+
 pub fn listen_for_output(program: &mut Child, ignore_output: bool) -> Result<()> {
     match program.stdout {
         Some(ref mut out) => {

@@ -121,7 +121,7 @@ where
 
     helper::unzip_to(&source_file, &tmp_dir)
         .with_context(|| format!("Unable to extract {source_file:?} to {tmp_dir:?}"))?;
-    
+
     helper::add_subs(&additional_submission_dirs, &tmp_dir)
         .with_context(|| format!("Unable to copy additional submissions \
         {additional_submission_dirs:?} to {tmp_dir:?}"))?;
@@ -201,9 +201,13 @@ where
             hand in an assignment: {no_zip_student:?}"))?;
     }
 
-    info!("Unzipped all submissions, Sanitizing output");
+    info!("Unzipped all submissions, Sanitizing output files");
     helper::sanitize_submissions(&tmp_dir)
-        .with_context(|| "Unable to sanitize output")?;
+        .with_context(|| "Unable to sanitize output files")?;
+
+    info!("Sanitized output files, replacing diacritics");
+    helper::sanitize_diacritic(&tmp_dir)
+        .with_context(|| "Unable to replace diacritics")?;
 
     Ok(())
 }
