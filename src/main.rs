@@ -35,6 +35,7 @@ fn main() -> Result<()> {
     let (
         source_file,
         temp_dir,
+        preserve_tmp_dir,
         result_dir,
         jplag_jar,
         jplag_args,
@@ -45,6 +46,7 @@ fn main() -> Result<()> {
     debug!("Full config: \
     source_file={source_file}, \
     temp_dir={temp_dir}, \
+    preserve_tmp_dir={preserve_tmp_dir}, \
     results_dir={result_dir}, \
     jplag_jar={jplag_jar}, \
     jplag_args={jplag_args:?}, \
@@ -75,10 +77,14 @@ fn main() -> Result<()> {
 
     #[cfg(not(debug_assertions))]
     {
-        info!("Cleaning up");
-        cleanup(&temp_dir)
-            .with_context(|| "Cleanup failed")?;
-        info!("Finished cleanup, goodbye! ({} ms)", start.elapsed().as_millis());
+        if preserve_tmp_dir {
+            info!("Not cleaning up, goodbye! ({} ms)", start.elapsed().as_millis());
+        } else {
+            info!("Cleaning up");
+            cleanup(&temp_dir)
+                .with_context(|| "Cleanup failed")?;
+            info!("Finished cleanup, goodbye! ({} ms)", start.elapsed().as_millis());
+        }
     }
 
     #[cfg(debug_assertions)]

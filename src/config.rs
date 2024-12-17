@@ -81,6 +81,9 @@ struct Args {
     /// Warning: This directory will be deleted at application start, if it exists
     #[clap(long)]
     tmp_dir: Option<String>,
+    /// Do not remove tmp dir
+    #[clap(short, long)]
+    preserve_tmp_dir: bool,
     /// Where to find the ignore file
     ///
     /// Will be passed to jplag as an arg
@@ -159,9 +162,9 @@ pub fn get_log_level() -> Level {
 
 /// Parse args for the bin, prioritizes cli over toml
 ///
-/// Returns: (source, tmp_dir, target_dir, jplag_jar, jplag_args, ignore_jplag_output,
-/// additional_submission_dirs)
-pub fn parse_args() -> Result<(String, String, String, String, Vec<String>, bool, Vec<String>)> {
+/// Returns: (source, tmp_dir, preserve_tmp_dir, target_dir,
+/// jplag_jar, jplag_args, ignore_jplag_output, additional_submission_dirs)
+pub fn parse_args() -> Result<(String, String, bool, String, String, Vec<String>, bool, Vec<String>)> {
     debug!("Getting args");
     let args = Args::parse();
     if args.init {
@@ -194,6 +197,10 @@ pub fn parse_args() -> Result<(String, String, String, String, Vec<String>, bool
                       });
 
     debug!("Set tmp_dir to {tmp_dir}");
+
+    let preserve_tmp_dir = args.preserve_tmp_dir;
+
+    debug!("Set preserve_tmp_dir to {preserve_tmp_dir}");
 
     let target_dir = args.target_dir
                          .unwrap_or_else(|| {
@@ -281,6 +288,7 @@ pub fn parse_args() -> Result<(String, String, String, String, Vec<String>, bool
     Ok((
         source,
         tmp_dir,
+        preserve_tmp_dir,
         target_dir,
         jplag_jar,
         jplag_args,
