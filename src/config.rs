@@ -81,7 +81,8 @@ struct Args {
     /// Warning: This directory will be deleted at application start, if it exists
     #[clap(long)]
     tmp_dir: Option<String>,
-    /// Do not remove tmp dir
+    /// Set to not remove {{tmp_dir}}
+    /// when the program finishes
     #[clap(short, long)]
     preserve_tmp_dir: bool,
     /// Where to find the ignore file
