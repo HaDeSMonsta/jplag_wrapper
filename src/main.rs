@@ -37,6 +37,7 @@ fn main() -> Result<()> {
         temp_dir,
         preserve_tmp_dir,
         result_dir,
+        remove_non_ascii,
         jplag_jar,
         jplag_args,
         ignore_jplag_output,
@@ -48,6 +49,7 @@ fn main() -> Result<()> {
     temp_dir={temp_dir}, \
     preserve_tmp_dir={preserve_tmp_dir}, \
     results_dir={result_dir}, \
+    remove_non_ascii={remove_non_ascii}, \
     jplag_jar={jplag_jar}, \
     jplag_args={jplag_args:?}, \
     ignore_jplag_output={ignore_jplag_output}, \
@@ -64,7 +66,7 @@ fn main() -> Result<()> {
     init(&source_file, &result_dir, &temp_dir, &jplag_jar, &additional_submission_dirs)
         .with_context(|| "Initialization failed")?;
 
-    prepare(&temp_dir)
+    prepare(&temp_dir, remove_non_ascii)
         .with_context(|| "Preparing submissions failed")?;
 
     run(
@@ -137,7 +139,7 @@ where
     Ok(())
 }
 
-fn prepare<P>(tmp_dir: P) -> Result<()>
+fn prepare<P>(tmp_dir: P, remove_non_ascii: bool) -> Result<()>
 where
     P: AsRef<Path>,
 {
@@ -212,7 +214,7 @@ where
         .with_context(|| "Unable to sanitize output files")?;
 
     info!("Sanitized output files, replacing diacritics");
-    helper::sanitize_diacritic(&tmp_dir)
+    helper::sanitize_diacritic(&tmp_dir, remove_non_ascii)
         .with_context(|| "Unable to replace diacritics")?;
 
     Ok(())

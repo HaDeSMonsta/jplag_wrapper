@@ -178,7 +178,7 @@ where
     Ok(())
 }
 
-pub fn sanitize_diacritic<P>(path: P) -> Result<()>
+pub fn sanitize_diacritic<P>(path: P, remove_non_ascii: bool) -> Result<()>
 where
     P: AsRef<Path> + Debug,
 {
@@ -201,10 +201,15 @@ where
         let content = fs::read_to_string(&file_path)
             .with_context(|| format!("Unable to read {file_path:?}"))?;
 
-        let sanitized_content = replacements.iter()
+        let mut sanitized_content = replacements.iter()
                                             .fold(content.clone(), |acc, &(from, to)| {
                                                 acc.replace(from, to)
                                             });
+
+        if remove_non_ascii {
+            sanitized_content = sanitized_content
+                .replace(|c: char| !c.is_ascii(), "");
+        }
 
         if sanitized_content == content {
             debug!("{file_path:?} did not contain diacritics");
