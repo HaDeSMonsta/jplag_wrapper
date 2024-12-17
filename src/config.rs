@@ -56,6 +56,9 @@ struct Args {
     /// Otherwise, `info` will be used
     #[clap(short, long)]
     debug: bool,
+    /// Remove all non ASCII characters from all submissions
+    #[clap(long)]
+    remove_non_ascii: bool,
     /// Specify the config toml file to look for
     /// if you don't want to use the default config.toml
     ///
@@ -163,9 +166,9 @@ pub fn get_log_level() -> Level {
 
 /// Parse args for the bin, prioritizes cli over toml
 ///
-/// Returns: (source, tmp_dir, preserve_tmp_dir, target_dir,
+/// Returns: (source, tmp_dir, preserve_tmp_dir, target_dir, remove_non_ascii,
 /// jplag_jar, jplag_args, ignore_jplag_output, additional_submission_dirs)
-pub fn parse_args() -> Result<(String, String, bool, String, String, Vec<String>, bool, Vec<String>)> {
+pub fn parse_args() -> Result<(String, String, bool, String, bool, String, Vec<String>, bool, Vec<String>)> {
     debug!("Getting args");
     let args = Args::parse();
     if args.init {
@@ -214,6 +217,10 @@ pub fn parse_args() -> Result<(String, String, bool, String, String, Vec<String>
     let ignore_jplag_out = args.ignore_output;
 
     debug!("Ignore jplag output: {ignore_jplag_out}");
+
+    let remove_non_ascii = args.remove_non_ascii;
+
+    debug!("Remove non ascii {remove_non_ascii}");
 
     let jplag_jar = args.jplag_jar
                         .unwrap_or_else(|| {
@@ -291,6 +298,7 @@ pub fn parse_args() -> Result<(String, String, bool, String, String, Vec<String>
         tmp_dir,
         preserve_tmp_dir,
         target_dir,
+        remove_non_ascii,
         jplag_jar,
         jplag_args,
         ignore_jplag_out,
