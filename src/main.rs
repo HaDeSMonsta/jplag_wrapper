@@ -214,7 +214,7 @@ where
         .with_context(|| "Unable to sanitize output files")?;
 
     info!("Sanitized output files, replacing diacritics");
-    helper::sanitize_diacritic(&tmp_dir, remove_non_ascii)
+    helper::clean_non_ascii(&tmp_dir, remove_non_ascii)
         .with_context(|| "Unable to replace diacritics")?;
 
     Ok(())

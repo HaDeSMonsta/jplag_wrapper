@@ -178,7 +178,8 @@ where
     Ok(())
 }
 
-pub fn sanitize_diacritic<P>(path: P, remove_non_ascii: bool) -> Result<()>
+/// Replace diacritics and remove all non ASCII characters
+pub fn clean_non_ascii<P>(path: P, remove_non_ascii: bool) -> Result<()>
 where
     P: AsRef<Path> + Debug,
 {
