@@ -154,7 +154,10 @@ where
         let student_name_dir_path = dir.path();
         debug!("Processing path {student_name_dir_path:?}");
 
-        assert!(student_name_dir_path.is_dir(), "Everything in {tmp_dir:?} should be a dir, found {student_name_dir_path:?}");
+        if !student_name_dir_path.is_dir() { 
+            return Err(anyhow!(
+                "Everything in {tmp_dir:?} should be a dir, found {student_name_dir_path:?}"));
+        }
 
         let mut archive_file = None;
         let mut fun: fn(_, _, _) -> Result<()> = archive_handler::dummy;
