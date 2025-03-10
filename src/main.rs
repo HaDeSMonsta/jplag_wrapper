@@ -1,6 +1,6 @@
-mod config;
 mod helper;
 mod archive_handler;
+mod conf;
 
 use std::fmt::Debug;
 use std::fs;
@@ -17,6 +17,7 @@ use tracing::{debug, info, warn};
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 use walkdir::WalkDir;
+use conf::config;
 
 fn main() -> Result<()> {
     let start = Instant::now();
