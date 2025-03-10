@@ -489,7 +489,6 @@ dependencies = [
  "serde",
  "sevenz-rust",
  "tar",
- "thiserror",
  "toml",
  "tracing",
  "tracing-subscriber",
