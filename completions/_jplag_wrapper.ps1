@@ -37,7 +37,7 @@ Register-ArgumentCompleter -Native -CommandName 'jplag_wrapper' -ScriptBlock {
             [CompletionResult]::new('--init', '--init', [CompletionResultType]::ParameterName, 'Initialize the config, will create (or override!) `config.toml` with all values and fill it with the defaults')
             [CompletionResult]::new('-d', '-d', [CompletionResultType]::ParameterName, 'Set to use log level `debug`')
             [CompletionResult]::new('--debug', '--debug', [CompletionResultType]::ParameterName, 'Set to use log level `debug`')
-            [CompletionResult]::new('--remove-non-ascii', '--remove-non-ascii', [CompletionResultType]::ParameterName, 'Remove all non ASCII characters from all submissions')
+            [CompletionResult]::new('--keep-non-ascii', '--keep-non-ascii', [CompletionResultType]::ParameterName, 'Keep all non ASCII characters from all submissions')
             [CompletionResult]::new('-p', '-p', [CompletionResultType]::ParameterName, 'Set to not remove {{tmp_dir}} when the program finishes')
             [CompletionResult]::new('--preserve-tmp-dir', '--preserve-tmp-dir', [CompletionResultType]::ParameterName, 'Set to not remove {{tmp_dir}} when the program finishes')
             [CompletionResult]::new('--ignore-output', '--ignore-output', [CompletionResultType]::ParameterName, 'Set to ignore the output of jplag')

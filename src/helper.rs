@@ -179,7 +179,7 @@ where
 }
 
 /// Replace diacritics and remove all non ASCII characters
-pub fn clean_non_ascii<P>(path: P, remove_non_ascii: bool) -> Result<()>
+pub fn clean_non_ascii<P>(path: P, keep_non_ascii: bool) -> Result<()>
 where
     P: AsRef<Path> + Debug,
 {
@@ -211,7 +211,7 @@ where
                                                     acc.replace(from, to)
                                                 });
 
-        if remove_non_ascii {
+        if !keep_non_ascii {
             sanitized_content = sanitized_content
                 .replace(|c: char| !c.is_ascii(), "");
         }

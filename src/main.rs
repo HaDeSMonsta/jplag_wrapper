@@ -37,7 +37,7 @@ fn main() -> Result<()> {
         temp_dir,
         preserve_tmp_dir,
         result_dir,
-        remove_non_ascii,
+        keep_non_ascii,
         jplag_jar,
         jplag_args,
         ignore_jplag_output,
@@ -45,15 +45,15 @@ fn main() -> Result<()> {
     ) = config::parse_args()
         .with_context(|| "Unable to parse args")?;
     debug!("Full config: \
-    source_file={source_file}, \
-    temp_dir={temp_dir}, \
-    preserve_tmp_dir={preserve_tmp_dir}, \
-    results_dir={result_dir}, \
-    remove_non_ascii={remove_non_ascii}, \
-    jplag_jar={jplag_jar}, \
-    jplag_args={jplag_args:?}, \
-    ignore_jplag_output={ignore_jplag_output}, \
-    additional_submission_dirs={additional_submission_dirs:?}");
+        source_file={source_file}, \
+        temp_dir={temp_dir}, \
+        preserve_tmp_dir={preserve_tmp_dir}, \
+        results_dir={result_dir}, \
+        keep_non_ascii={keep_non_ascii}, \
+        jplag_jar={jplag_jar}, \
+        jplag_args={jplag_args:?}, \
+        ignore_jplag_output={ignore_jplag_output}, \
+        additional_submission_dirs={additional_submission_dirs:?}");
 
     info!("Checking if java is executable");
 
@@ -66,7 +66,7 @@ fn main() -> Result<()> {
     init(&source_file, &result_dir, &temp_dir, &jplag_jar, &additional_submission_dirs)
         .with_context(|| "Initialization failed")?;
 
-    prepare(&temp_dir, remove_non_ascii)
+    prepare(&temp_dir, keep_non_ascii)
         .with_context(|| "Preparing submissions failed")?;
 
     run(
@@ -139,7 +139,7 @@ where
     Ok(())
 }
 
-fn prepare<P>(tmp_dir: P, remove_non_ascii: bool) -> Result<()>
+fn prepare<P>(tmp_dir: P, keep_non_ascii: bool) -> Result<()>
 where
     P: AsRef<Path>,
 {
@@ -217,7 +217,7 @@ where
         .with_context(|| "Unable to sanitize output files")?;
 
     info!("Sanitized output files, replacing diacritics");
-    helper::clean_non_ascii(&tmp_dir, remove_non_ascii)
+    helper::clean_non_ascii(&tmp_dir, keep_non_ascii)
         .with_context(|| "Unable to replace diacritics")?;
 
     Ok(())

@@ -31,9 +31,12 @@ pub struct Args {
     /// Otherwise, `info` will be used
     #[clap(short, long)]
     debug: bool,
-    /// Remove all non ASCII characters from all submissions
+    /// Keep all non ASCII characters from all submissions
+    /// 
+    /// jplag can't handle non ASCII characters properly, so we remove them by default.
+    /// Set this flag to keep them
     #[clap(long)]
-    remove_non_ascii: bool,
+    keep_non_ascii: bool,
     /// Specify the config toml file to look for
     /// if you don't want to use the default config.toml
     ///
@@ -140,8 +143,8 @@ impl Args {
         self.debug
     }
 
-    pub fn remove_non_ascii(&self) -> bool {
-        self.remove_non_ascii
+    pub fn keep_non_ascii(&self) -> bool {
+        self.keep_non_ascii
     }
 
     pub fn config(&self) -> &Option<String> {
