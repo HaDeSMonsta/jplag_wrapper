@@ -1,6 +1,5 @@
 mod config;
 mod helper;
-mod custom_errors;
 mod archive_handler;
 
 use std::fmt::Debug;
@@ -12,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::Instant;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use tracing::{debug, info, warn};
 #[cfg(debug_assertions)]
 use tracing::Level;
@@ -110,13 +109,13 @@ where
     debug!("Checking if source zip file exist");
     if !fs::exists(&source_file)
         .with_context(|| format!("Unable to confirm if {source_file:?} exists"))? {
-        return Err(custom_errors::FileNotFoundError::ZipFileNotFound(source_file.into()).into());
+        bail!("Unable to find source zip file {source_file:?}");
     }
 
     debug!("Checking if jplag jar file exists");
     if !fs::exists(&jplag_jar)
         .with_context(|| format!("Unable to confirm if \"{jplag_jar}\" exists"))? {
-        return Err(custom_errors::FileNotFoundError::JarFileNotFound(jplag_jar.into()).into());
+        bail!("Unable to find jplag jar file \"{jplag_jar}\"");
     }
 
     debug!("Removing result dir");
@@ -154,7 +153,7 @@ where
         let student_name_dir_path = dir.path();
         debug!("Processing path {student_name_dir_path:?}");
 
-        if !student_name_dir_path.is_dir() { 
+        if !student_name_dir_path.is_dir() {
             return Err(anyhow!(
                 "Everything in {tmp_dir:?} should be a dir, found {student_name_dir_path:?}"));
         }
@@ -259,7 +258,7 @@ fn run(
         warn!("Command failed, {status}");
         warn!("To debug manually, run \"{dbg_cmd}\" in the current directory");
         // Do not clean up on purpose, wwe want to see what caused the error
-        Err(custom_errors::SubCmdError::JplagExecFailure(status.code().unwrap()).into())
+        bail!("Java jplag command failed, {status}");
     } else {
         info!("{status}");
         let current_dir = env::current_dir()
