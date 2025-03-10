@@ -12,16 +12,9 @@ const BINARY_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// `cli-arg -> toml config -> default value`
 ///
 /// While `--init` creates a toml file with all settings,
-/// you only need to se the ones you want to change
+/// you only need to set the ones you want to change
 #[derive(Clone, Debug, Parser)]
-#[clap(
-    about = "A jplag wrapper with sane defaults",
-    long_about = "A jplag wrapper with sane defaults\n\n\
-    Option priority for each individual option is as follows ('-> == override')\n\n\
-    `cli-arg -> toml config -> default value`\n\n\
-    While `--init` creates a toml file with all settings, \
-    you only need to set the ones you want to change"
-)]
+#[clap()]
 pub struct Args {
     /// Print version
     #[clap(short, long)]
