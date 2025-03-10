@@ -3,14 +3,12 @@ use std::{fs, io};
 use std::fs::OpenOptions;
 use std::io::{BufWriter, Write};
 use std::process::exit;
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info, warn};
 #[cfg(not(debug_assertions))]
 use tracing::Level;
-
-use crate::custom_errors;
 
 const DEFAULT_CONFIG_FILE: &str = "config.toml";
 const DEFAULT_SOURCE_FILE: &str = "submissions.zip";
@@ -23,6 +21,8 @@ const DEFAULT_RES_ZIP: &str = "results.zip";
 const DEFAULT_JAVA_VERSION: &str = "java";
 #[cfg(feature = "legacy")]
 const DEFAULT_JAVA_VERSION: &str = "java19";
+pub const BINARY_NAME: &str = env!("CARGO_PKG_NAME");
+pub const BINARY_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 
 /// A jplag wrapper with sane defaults
@@ -273,7 +273,7 @@ pub fn parse_args() -> Result<(String, String, bool, String, bool, String, Vec<S
 
             if !fs::exists(&ignore_file)
                 .with_context(|| format!("Unable to check if \"{ignore_file}\" exists"))? {
-                return Err(custom_errors::FileNotFoundError::IgnoreFileNotFound(ignore_file).into());
+                bail!("Ignore file \"{ignore_file}\" not found");
             }
 
             jplag_args.push(String::from("-x"));
@@ -312,9 +312,7 @@ fn parse_toml(file: &str, conf_file_name_overridden: bool) -> Result<Config> {
         .with_context(|| format!("Unable to check if {file} exists"))? {
         debug!("{file} does not exist");
         if conf_file_name_overridden {
-            return Err(custom_errors::FileNotFoundError::ConfigFileNotFound(
-                file.to_string()
-            ).into());
+            bail!("Config file \"{file}\" not found");
         }
         debug!("Returning empty config");
         return Ok(Config {
