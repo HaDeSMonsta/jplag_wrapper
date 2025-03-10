@@ -3,12 +3,15 @@ use std::{fs, io};
 use std::fs::OpenOptions;
 use std::io::{BufWriter, Write};
 use std::process::exit;
+use std::sync::LazyLock;
 use anyhow::{bail, Context, Result};
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info, warn};
 #[cfg(not(debug_assertions))]
 use tracing::Level;
+use crate::conf::args;
+use crate::conf::args::Args;
 
 const DEFAULT_CONFIG_FILE: &str = "config.toml";
 const DEFAULT_SOURCE_FILE: &str = "submissions.zip";
@@ -21,129 +24,8 @@ const DEFAULT_RES_ZIP: &str = "results.zip";
 const DEFAULT_JAVA_VERSION: &str = "java";
 #[cfg(feature = "legacy")]
 const DEFAULT_JAVA_VERSION: &str = "java19";
-pub const BINARY_NAME: &str = env!("CARGO_PKG_NAME");
-pub const BINARY_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-
-/// A jplag wrapper with sane defaults
-///
-/// Option priority is as follows (`-> == override`)
-///
-/// `cli-arg -> toml config -> default value`
-///
-/// While `--init` creates a toml file with all settings,
-/// you only need to se the ones you want to change
-#[derive(Clone, Debug, Parser)]
-#[clap(
-    version,
-    about = "A jplag wrapper with sane defaults",
-    long_about = "A jplag wrapper with sane defaults\n\n\
-    Option priority for each individual option is as follows ('-> == override')\n\n\
-    `cli-arg -> toml config -> default value`\n\n\
-    While `--init` creates a toml file with all settings, \
-    you only need to set the ones you want to change"
-)]
-struct Args {
-    /// Initialize the config,
-    /// will create (or override!) `config.toml` with all values
-    /// and fill it with the defaults
-    ///
-    /// Except `ignore_file`, because the default is `None`
-    #[clap(long)]
-    init: bool,
-    /// Set to use log level `debug`
-    ///
-    /// Otherwise, `info` will be used
-    #[clap(short, long)]
-    debug: bool,
-    /// Remove all non ASCII characters from all submissions
-    #[clap(long)]
-    remove_non_ascii: bool,
-    /// Specify the config toml file to look for
-    /// if you don't want to use the default config.toml
-    ///
-    /// Will panic, if file does not exist
-    #[clap(short, long)]
-    config: Option<String>,
-    /// Where the input file can be found
-    ///
-    /// Defaults to `submissions.zip`
-    #[clap(short, long)]
-    source_zip: Option<String>,
-    /// Where to put the results
-    ///
-    /// Defaults to `out/`
-    ///
-    /// Warning: This directory will be deleted at application start, if it exists
-    #[clap(short, long)]
-    target_dir: Option<String>,
-    /// Where to put the temporary files
-    ///
-    /// Defaults to `tmp/`
-    ///
-    /// Warning: This directory will be deleted at application start, if it exists
-    #[clap(long)]
-    tmp_dir: Option<String>,
-    /// Set to not remove {{tmp_dir}}
-    /// when the program finishes
-    #[clap(short, long)]
-    preserve_tmp_dir: bool,
-    /// Where to find the ignore file
-    ///
-    /// Will be passed to jplag as an arg
-    /// `-x {{ignore_file}}`
-    ///
-    /// Defaults to None
-    ///
-    /// Will panic, if arg is set and file doesn't exist
-    ///
-    /// Argument will be ignored if jplag args are manually set
-    #[clap(short, long)]
-    ignore_file: Option<String>,
-    /// Set to ignore the output of jplag
-    ///
-    /// The programm will still wait for the child process to exit
-    /// and process the output, but it will just ignore it
-    #[clap(long)]
-    ignore_output: bool,
-    /// Where the jplag jar can be found
-    ///
-    /// Defaults to `jplag.jar`
-    ///
-    /// Will panic, if file does not exist
-    #[clap(short, long)]
-    jplag_jar: Option<String>,
-    /// Additional submission directories (if you read this with -h,
-    /// use --help for full docs)
-    ///
-    /// A list of additional submissions
-    /// which will be treated exactly like normal submissions
-    ///
-    /// This means no validation will be performed,
-    /// except for checking that each input exists and is a directory
-    ///
-    /// In practise, we will just copy all directories into {{tmp_dir}}
-    /// after extracting the {{source_zip}} file
-    ///
-    /// Expected structure: foo/bar[.zip|.tar|.tar.gz|.rawr]
-    ///
-    /// Expected input: foo/
-    add_sub_dirs: Vec<String>,
-    #[cfg(not(feature = "legacy"))]
-    /// Will be passed directly to jplag as arguments
-    ///
-    /// Defaults to `{{tmp_dir}} -r {{target_dir}}/results.zip -l java`
-    #[clap(last = true)]
-    jplag_args: Vec<String>,
-    #[cfg(feature = "legacy")]
-    /// Everything after `--`
-    ///
-    /// Will be passed directly to jplag as arguments
-    ///
-    /// Defaults to `-s {{tmp_dir}} -r {{target_dir}} -l java19`
-    #[clap(last = true)]
-    jplag_args: Vec<String>,
-}
+static ARGS: LazyLock<Args> = LazyLock::new(|| Args::parse());
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Config {
@@ -157,7 +39,7 @@ struct Config {
 
 #[cfg(not(debug_assertions))]
 pub fn get_log_level() -> Level {
-    if Args::parse().debug {
+    if ARGS.debug() {
         Level::DEBUG
     } else {
         Level::INFO
@@ -170,23 +52,26 @@ pub fn get_log_level() -> Level {
 /// jplag_jar, jplag_args, ignore_jplag_output, additional_submission_dirs)
 pub fn parse_args() -> Result<(String, String, bool, String, bool, String, Vec<String>, bool, Vec<String>)> {
     debug!("Getting args");
-    let args = Args::parse();
-    if args.init {
+    if ARGS.version() {
+        args::version();
+    }
+    if ARGS.init() {
         debug!("Initializing config");
         dump_default_config()
             .with_context(|| "Unable to write default config")?;
         exit(0);
     };
 
-    let config_name_overridden = args.config.is_some();
+    let config_name_overridden = ARGS.config().is_some();
     let config = parse_toml(
-        &args.config.unwrap_or_else(|| DEFAULT_CONFIG_FILE.to_string()),
+        &ARGS.config().clone().unwrap_or_else(|| DEFAULT_CONFIG_FILE.to_string()),
         config_name_overridden,
     ).with_context(|| "Unable to parse toml config")?;
 
     debug!("Successfully parsed toml");
 
-    let source = args.source_zip
+    let source = ARGS.source_zip()
+                     .clone()
                      .unwrap_or_else(|| {
                          config.source_zip
                                .unwrap_or_else(|| DEFAULT_SOURCE_FILE.to_string())
@@ -194,7 +79,8 @@ pub fn parse_args() -> Result<(String, String, bool, String, bool, String, Vec<S
 
     debug!("Set source to {source}");
 
-    let tmp_dir = args.tmp_dir
+    let tmp_dir = ARGS.tmp_dir()
+                      .clone()
                       .unwrap_or_else(|| {
                           config.tmp_dir
                                 .unwrap_or_else(|| DEFAULT_TMP_DIR.to_string())
@@ -202,11 +88,12 @@ pub fn parse_args() -> Result<(String, String, bool, String, bool, String, Vec<S
 
     debug!("Set tmp_dir to {tmp_dir}");
 
-    let preserve_tmp_dir = args.preserve_tmp_dir;
+    let preserve_tmp_dir = ARGS.preserve_tmp_dir();
 
     debug!("Set preserve_tmp_dir to {preserve_tmp_dir}");
 
-    let target_dir = args.target_dir
+    let target_dir = ARGS.target_dir()
+                         .clone()
                          .unwrap_or_else(|| {
                              config.target_dir
                                    .unwrap_or_else(|| DEFAULT_TARGET_DIR.to_string())
@@ -214,15 +101,16 @@ pub fn parse_args() -> Result<(String, String, bool, String, bool, String, Vec<S
 
     debug!("Set target dir to {target_dir}");
 
-    let ignore_jplag_out = args.ignore_output;
+    let ignore_jplag_out = ARGS.ignore_output();
 
     debug!("Ignore jplag output: {ignore_jplag_out}");
 
-    let remove_non_ascii = args.remove_non_ascii;
+    let remove_non_ascii = ARGS.remove_non_ascii();
 
     debug!("Remove non ascii {remove_non_ascii}");
 
-    let jplag_jar = args.jplag_jar
+    let jplag_jar = ARGS.jplag_jar()
+                        .clone()
                         .unwrap_or_else(|| {
                             config.jplag_jar
                                   .unwrap_or_else(|| DEFAULT_JPLAG_FILE.to_string())
@@ -230,7 +118,8 @@ pub fn parse_args() -> Result<(String, String, bool, String, bool, String, Vec<S
 
     debug!("Set jplag_jar to {jplag_jar}");
 
-    let mut jplag_args = args.jplag_args;
+    let mut jplag_args = ARGS.jplag_args()
+                             .clone();
     let mut jplag_args_overridden = true;
     if jplag_args.is_empty() {
         let mut to_append = config.jplag_args
@@ -265,7 +154,8 @@ pub fn parse_args() -> Result<(String, String, bool, String, bool, String, Vec<S
 
     if !jplag_args_overridden {
         debug!("Jplag args were not overridden, checking for ignore file");
-        let ignore_file = args.ignore_file
+        let ignore_file = ARGS.ignore_file()
+                              .clone()
                               .or(config.ignore_file);
 
         if let Some(ignore_file) = ignore_file {
@@ -287,7 +177,7 @@ pub fn parse_args() -> Result<(String, String, bool, String, bool, String, Vec<S
 
     debug!("Set jplag args to {jplag_args:?}");
 
-    let additional_submission_dirs = args.add_sub_dirs;
+    let additional_submission_dirs = ARGS.add_sub_dirs().clone();
 
     debug!("Additional submission dirs: {additional_submission_dirs:?}");
 

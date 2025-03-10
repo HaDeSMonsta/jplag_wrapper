@@ -1,8 +1,10 @@
+use std::fs;
+use anyhow::{Context, Result};
 use clap::CommandFactory;
 use clap_complete::generate_to;
 use clap_complete::Shell::*;
 
-include!("src/config.rs");
+include!("src/conf/args.rs");
 
 const COMPLETIONS_OUT_DIR: &str = "completions/";
 
