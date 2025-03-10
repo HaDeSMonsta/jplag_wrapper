@@ -2,22 +2,22 @@ mod helper;
 mod archive_handler;
 mod conf;
 
+use anyhow::{anyhow, bail, Context, Result};
+use conf::config;
+use std::env;
 use std::fmt::Debug;
 use std::fs;
-use std::env;
-#[cfg(not(feature = "legacy"))]
-use std::path::{Path, PathBuf};
 #[cfg(feature = "legacy")]
 use std::path::Path;
+#[cfg(not(feature = "legacy"))]
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Instant;
-use anyhow::{anyhow, bail, Context, Result};
-use tracing::{debug, info, warn};
 #[cfg(debug_assertions)]
 use tracing::Level;
+use tracing::{debug, info, warn};
 use tracing_subscriber::FmtSubscriber;
 use walkdir::WalkDir;
-use conf::config;
 
 fn main() -> Result<()> {
     let start = Instant::now();

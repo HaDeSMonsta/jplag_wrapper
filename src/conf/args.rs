@@ -1,5 +1,5 @@
-use std::process::exit;
 use clap::Parser;
+use std::process::exit;
 
 const BINARY_NAME: &str = env!("CARGO_PKG_NAME");
 const BINARY_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -32,7 +32,7 @@ pub struct Args {
     #[clap(short, long)]
     debug: bool,
     /// Keep all non ASCII characters from all submissions
-    /// 
+    ///
     /// jplag can't handle non ASCII characters properly, so we remove them by default.
     /// Set this flag to keep them
     #[clap(long)]
