@@ -195,7 +195,11 @@ where
 
         let file_path = entry.path();
 
-        if file_path.is_dir() || file_path.extension() != Some(OsStr::new("java")) { continue; }
+        if file_path.is_dir()
+            || file_path.extension()
+                        .and_then(|ext| ext.to_str())
+                        .map(|ext| ext.eq_ignore_ascii_case("java"))
+            != Some(true) { continue; }
 
         debug!("Checking {file_path:?} for diacritics");
 
@@ -203,9 +207,9 @@ where
             .with_context(|| format!("Unable to read {file_path:?}"))?;
 
         let mut sanitized_content = replacements.iter()
-                                            .fold(content.clone(), |acc, &(from, to)| {
-                                                acc.replace(from, to)
-                                            });
+                                                .fold(content.clone(), |acc, &(from, to)| {
+                                                    acc.replace(from, to)
+                                                });
 
         if remove_non_ascii {
             sanitized_content = sanitized_content
