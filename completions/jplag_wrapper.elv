@@ -34,7 +34,7 @@ set edit:completion:arg-completer[jplag_wrapper] = {|@words|
             cand --init 'Initialize the config, will create (or override!) `config.toml` with all values and fill it with the defaults'
             cand -d 'Set to use log level `debug`'
             cand --debug 'Set to use log level `debug`'
-            cand --remove-non-ascii 'Remove all non ASCII characters from all submissions'
+            cand --keep-non-ascii 'Keep all non ASCII characters from all submissions'
             cand -p 'Set to not remove {{tmp_dir}} when the program finishes'
             cand --preserve-tmp-dir 'Set to not remove {{tmp_dir}} when the program finishes'
             cand --ignore-output 'Set to ignore the output of jplag'

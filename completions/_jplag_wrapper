@@ -31,7 +31,7 @@ _jplag_wrapper() {
 '--init[Initialize the config, will create (or override!) \`config.toml\` with all values and fill it with the defaults]' \
 '-d[Set to use log level \`debug\`]' \
 '--debug[Set to use log level \`debug\`]' \
-'--remove-non-ascii[Remove all non ASCII characters from all submissions]' \
+'--keep-non-ascii[Keep all non ASCII characters from all submissions]' \
 '-p[Set to not remove {{tmp_dir}} when the program finishes]' \
 '--preserve-tmp-dir[Set to not remove {{tmp_dir}} when the program finishes]' \
 '--ignore-output[Set to ignore the output of jplag]' \

@@ -48,7 +48,7 @@ pub fn get_log_level() -> Level {
 
 /// Parse args for the bin, prioritizes cli over toml
 ///
-/// Returns: (source, tmp_dir, preserve_tmp_dir, target_dir, remove_non_ascii,
+/// Returns: (source, tmp_dir, preserve_tmp_dir, target_dir, keep_non_ascii,
 /// jplag_jar, jplag_args, ignore_jplag_output, additional_submission_dirs)
 pub fn parse_args() -> Result<(String, String, bool, String, bool, String, Vec<String>, bool, Vec<String>)> {
     debug!("Getting args");
@@ -105,9 +105,9 @@ pub fn parse_args() -> Result<(String, String, bool, String, bool, String, Vec<S
 
     debug!("Ignore jplag output: {ignore_jplag_out}");
 
-    let remove_non_ascii = ARGS.remove_non_ascii();
+    let keep_non_ascii = ARGS.keep_non_ascii();
 
-    debug!("Remove non ascii {remove_non_ascii}");
+    debug!("Remove non ascii {keep_non_ascii}");
 
     let jplag_jar = ARGS.jplag_jar()
                         .clone()
@@ -188,7 +188,7 @@ pub fn parse_args() -> Result<(String, String, bool, String, bool, String, Vec<S
         tmp_dir,
         preserve_tmp_dir,
         target_dir,
-        remove_non_ascii,
+        keep_non_ascii,
         jplag_jar,
         jplag_args,
         ignore_jplag_out,

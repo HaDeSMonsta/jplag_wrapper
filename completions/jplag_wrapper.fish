@@ -7,7 +7,7 @@ complete -c jplag_wrapper -s j -l jplag-jar -d 'Where the jplag jar can be found
 complete -c jplag_wrapper -s v -l version -d 'Print version'
 complete -c jplag_wrapper -l init -d 'Initialize the config, will create (or override!) `config.toml` with all values and fill it with the defaults'
 complete -c jplag_wrapper -s d -l debug -d 'Set to use log level `debug`'
-complete -c jplag_wrapper -l remove-non-ascii -d 'Remove all non ASCII characters from all submissions'
+complete -c jplag_wrapper -l keep-non-ascii -d 'Keep all non ASCII characters from all submissions'
 complete -c jplag_wrapper -s p -l preserve-tmp-dir -d 'Set to not remove {{tmp_dir}} when the program finishes'
 complete -c jplag_wrapper -l ignore-output -d 'Set to ignore the output of jplag'
 complete -c jplag_wrapper -s h -l help -d 'Print help (see more with \'--help\')'
