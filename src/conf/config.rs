@@ -1,17 +1,17 @@
+use crate::conf::args;
+use crate::conf::args::Args;
+use anyhow::{bail, Context, Result};
+use clap::Parser;
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
-use std::{fs, io};
 use std::fs::OpenOptions;
 use std::io::{BufWriter, Write};
 use std::process::exit;
 use std::sync::LazyLock;
-use anyhow::{bail, Context, Result};
-use clap::Parser;
-use serde::{Deserialize, Serialize};
-use tracing::{debug, info, warn};
+use std::{fs, io};
 #[cfg(not(debug_assertions))]
 use tracing::Level;
-use crate::conf::args;
-use crate::conf::args::Args;
+use tracing::{debug, info, warn};
 
 const DEFAULT_CONFIG_FILE: &str = "config.toml";
 const DEFAULT_SOURCE_FILE: &str = "submissions.zip";
