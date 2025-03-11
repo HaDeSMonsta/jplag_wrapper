@@ -20,6 +20,12 @@ const DEFAULT_RES_ZIP: &str = "results.zip";
 const DEFAULT_JAVA_VERSION: &str = "java";
 
 pub static ARGS: LazyLock<Args> = LazyLock::new(|| Args::parse());
+static CONFIG: LazyLock<Config> = LazyLock::new(||
+    match parse_toml() {
+        Ok(c) => c,
+        Err(e) => panic!("Unable to parse config: {e}")
+    }
+);
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Config {
@@ -35,7 +41,16 @@ struct Config {
 ///
 /// Returns: (source, tmp_dir, preserve_tmp_dir, target_dir, keep_non_ascii,
 /// jplag_jar, jplag_args, additional_submission_dirs)
-pub fn parse_args() -> Result<(String, String, bool, String, bool, String, Vec<String>, Vec<String>)> {
+pub fn parse_args() -> Result<(
+    String,
+    String,
+    bool,
+    String,
+    bool,
+    String,
+    Vec<String>,
+    Vec<String>
+)> {
     debug!("Getting args");
     if ARGS.version() {
         args::version();
@@ -47,18 +62,13 @@ pub fn parse_args() -> Result<(String, String, bool, String, bool, String, Vec<S
         exit(0);
     };
 
-    let config_name_overridden = ARGS.config().is_some();
-    let config = parse_toml(
-        &ARGS.config().clone().unwrap_or_else(|| DEFAULT_CONFIG_FILE.to_string()),
-        config_name_overridden,
-    ).with_context(|| "Unable to parse toml config")?;
-
     debug!("Successfully parsed toml");
 
     let source = ARGS.source_zip()
                      .clone()
                      .unwrap_or_else(|| {
-                         config.source_zip
+                         CONFIG.source_zip
+                               .clone()
                                .unwrap_or_else(|| DEFAULT_SOURCE_FILE.to_string())
                      });
 
@@ -67,7 +77,8 @@ pub fn parse_args() -> Result<(String, String, bool, String, bool, String, Vec<S
     let tmp_dir = ARGS.tmp_dir()
                       .clone()
                       .unwrap_or_else(|| {
-                          config.tmp_dir
+                          CONFIG.tmp_dir
+                                .clone()
                                 .unwrap_or_else(|| DEFAULT_TMP_DIR.to_string())
                       });
 
@@ -80,7 +91,8 @@ pub fn parse_args() -> Result<(String, String, bool, String, bool, String, Vec<S
     let target_dir = ARGS.target_dir()
                          .clone()
                          .unwrap_or_else(|| {
-                             config.target_dir
+                             CONFIG.target_dir
+                                   .clone()
                                    .unwrap_or_else(|| DEFAULT_TARGET_DIR.to_string())
                          });
 
@@ -93,7 +105,8 @@ pub fn parse_args() -> Result<(String, String, bool, String, bool, String, Vec<S
     let jplag_jar = ARGS.jplag_jar()
                         .clone()
                         .unwrap_or_else(|| {
-                            config.jplag_jar
+                            CONFIG.jplag_jar
+                                  .clone()
                                   .unwrap_or_else(|| DEFAULT_JPLAG_FILE.to_string())
                         });
 
@@ -103,7 +116,8 @@ pub fn parse_args() -> Result<(String, String, bool, String, bool, String, Vec<S
                              .clone();
     let mut jplag_args_overridden = true;
     if jplag_args.is_empty() {
-        let mut to_append = config.jplag_args
+        let mut to_append = CONFIG.jplag_args
+                                  .clone()
                                   .unwrap_or_else(|| {
                                       jplag_args_overridden = false;
                                       vec![
@@ -121,7 +135,7 @@ pub fn parse_args() -> Result<(String, String, bool, String, bool, String, Vec<S
         debug!("Jplag args were not overridden, checking for ignore file");
         let ignore_file = ARGS.ignore_file()
                               .clone()
-                              .or(config.ignore_file);
+                              .or(CONFIG.ignore_file.clone());
 
         if let Some(ignore_file) = ignore_file {
             debug!("Ignore file is set: {ignore_file}");
@@ -160,14 +174,19 @@ pub fn parse_args() -> Result<(String, String, bool, String, bool, String, Vec<S
     ))
 }
 
-fn parse_toml(file: &str, conf_file_name_overridden: bool) -> Result<Config> {
-    debug!("Parsing toml, source: {file}");
-    if !fs::exists(&file)
-        .with_context(|| format!("Unable to check if {file} exists"))? {
-        debug!("{file} does not exist");
-        if conf_file_name_overridden {
-            bail!("Config file \"{file}\" not found");
+fn parse_toml() -> Result<Config> {
+    let conf_file = ARGS.config()
+                        .clone()
+                        .unwrap_or_else(|| DEFAULT_CONFIG_FILE.to_string());
+
+    debug!("Parsing toml, source: {conf_file}");
+    if !fs::exists(&conf_file)
+        .with_context(|| format!("Unable to check if {conf_file} exists"))? {
+        debug!("{conf_file} does not exist");
+        if ARGS.config().is_some() {
+            bail!("Overridden config file \"{conf_file}\" not found");
         }
+
         debug!("Returning empty config");
         return Ok(Config {
             source_zip: None,
@@ -178,8 +197,10 @@ fn parse_toml(file: &str, conf_file_name_overridden: bool) -> Result<Config> {
             jplag_args: None,
         });
     }
-    let toml = fs::read_to_string(&file)
-        .with_context(|| format!("Failed to read from config file {file}"))?;
+
+    let toml = fs::read_to_string(&conf_file)
+        .with_context(|| format!("Failed to read from config file {conf_file}"))?;
+
     debug!("Parsing toml, raw: {toml}");
     Ok(
         toml::from_str::<Config>(&toml)
