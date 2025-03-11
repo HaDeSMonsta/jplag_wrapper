@@ -234,7 +234,6 @@ pub fn listen_for_output(program: &mut Child, ignore_output: bool) -> Result<()>
         Some(ref mut out) => {
             let reader = BufReader::new(out);
 
-            #[cfg(not(feature = "legacy"))]
             let mut warn = false;
             for line in reader.lines() {
                 let line = line
@@ -242,7 +241,6 @@ pub fn listen_for_output(program: &mut Child, ignore_output: bool) -> Result<()>
                 if ignore_output { continue; }
                 let lower = line.to_lowercase();
 
-                #[cfg(not(feature = "legacy"))]
                 if warn {
                     warn!("{line}");
                     if lower.contains("^") { warn = false; }
@@ -253,7 +251,6 @@ pub fn listen_for_output(program: &mut Child, ignore_output: bool) -> Result<()>
                     lower.contains("warn") ||
                     lower.contains("fail") {
                     // Yes, jplag sends it errors to stdout
-                    #[cfg(not(feature = "legacy"))]
                     if line.contains("error:") {
                         warn = true;
                     }

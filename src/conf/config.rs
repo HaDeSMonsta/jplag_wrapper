@@ -18,12 +18,8 @@ const DEFAULT_SOURCE_FILE: &str = "submissions.zip";
 const DEFAULT_JPLAG_FILE: &str = "jplag.jar";
 const DEFAULT_TARGET_DIR: &str = "out/";
 const DEFAULT_TMP_DIR: &str = "tmp/";
-#[cfg(not(feature = "legacy"))]
 const DEFAULT_RES_ZIP: &str = "results.zip";
-#[cfg(not(feature = "legacy"))]
 const DEFAULT_JAVA_VERSION: &str = "java";
-#[cfg(feature = "legacy")]
-const DEFAULT_JAVA_VERSION: &str = "java19";
 
 static ARGS: LazyLock<Args> = LazyLock::new(|| Args::parse());
 
@@ -125,29 +121,13 @@ pub fn parse_args() -> Result<(String, String, bool, String, bool, String, Vec<S
         let mut to_append = config.jplag_args
                                   .unwrap_or_else(|| {
                                       jplag_args_overridden = false;
-                                      let v;
-                                      #[cfg(not(feature = "legacy"))]
-                                      {
-                                          v = vec![
-                                              tmp_dir.clone(),
-                                              String::from("-r"),
-                                              format!("{target_dir}/{DEFAULT_RES_ZIP}"),
-                                              String::from("-l"),
-                                              String::from(DEFAULT_JAVA_VERSION),
-                                          ]
-                                      }
-                                      #[cfg(feature = "legacy")]
-                                      {
-                                          v = vec![
-                                              String::from("-s"),
-                                              tmp_dir.clone(),
-                                              String::from("-r"),
-                                              target_dir.clone(),
-                                              String::from("-l"),
-                                              String::from(DEFAULT_JAVA_VERSION),
-                                          ]
-                                      }
-                                      v
+                                      vec![
+                                          tmp_dir.clone(),
+                                          String::from("-r"),
+                                          format!("{target_dir}/{DEFAULT_RES_ZIP}"),
+                                          String::from("-l"),
+                                          String::from(DEFAULT_JAVA_VERSION),
+                                      ]
                                   });
         jplag_args.append(&mut to_append);
     }
@@ -246,20 +226,10 @@ fn dump_default_config() -> Result<()> {
         tmp_dir: Some(String::from(DEFAULT_TMP_DIR)),
         ignore_file: None, // Don't like it, but if we set something the next run might fail
         jplag_jar: Some(String::from(DEFAULT_JPLAG_FILE)),
-        #[cfg(not(feature = "legacy"))]
         jplag_args: Some(vec![
             String::from(DEFAULT_TMP_DIR),
             String::from("-r"),
             format!("{DEFAULT_TARGET_DIR}/{DEFAULT_RES_ZIP}"),
-            String::from("-l"),
-            String::from(DEFAULT_JAVA_VERSION),
-        ]),
-        #[cfg(feature = "legacy")]
-        jplag_args: Some(vec![
-            String::from("-s"),
-            String::from(DEFAULT_TMP_DIR),
-            String::from("-r"),
-            String::from(DEFAULT_TARGET_DIR),
             String::from("-l"),
             String::from(DEFAULT_JAVA_VERSION),
         ]),
@@ -279,9 +249,9 @@ fn dump_default_config() -> Result<()> {
         .with_context(|| format!("Unable to parse default config (how???) {conf:?}"))?;
 
     debug!("Writing default config:\
-    \"\"\"\n\
-    {conf_str}\
-    \"\"\"\
+        \"\"\"\n\
+        {conf_str}\
+        \"\"\"\
     ");
 
     writeln!(writer, "{conf_str}")
