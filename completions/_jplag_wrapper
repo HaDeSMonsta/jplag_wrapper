@@ -15,6 +15,8 @@ _jplag_wrapper() {
 
     local context curcontext="$curcontext" state line
     _arguments "${_arguments_options[@]}" : \
+'-l+[Log Level to use]:LOG_LEVEL:_default' \
+'--log-level=[Log Level to use]:LOG_LEVEL:_default' \
 '-c+[Specify the config toml file to look for if you don'\''t want to use the default config.toml]:CONFIG:_default' \
 '--config=[Specify the config toml file to look for if you don'\''t want to use the default config.toml]:CONFIG:_default' \
 '-s+[Where the input file can be found]:SOURCE_ZIP:_default' \
@@ -29,8 +31,6 @@ _jplag_wrapper() {
 '-v[Print version]' \
 '--version[Print version]' \
 '--init[Initialize the config, will create (or override!) \`config.toml\` with all values and fill it with the defaults]' \
-'-d[Set to use log level \`debug\`]' \
-'--debug[Set to use log level \`debug\`]' \
 '--keep-non-ascii[Keep all non ASCII characters from all submissions]' \
 '-p[Set to not remove {{tmp_dir}} when the program finishes]' \
 '--preserve-tmp-dir[Set to not remove {{tmp_dir}} when the program finishes]' \

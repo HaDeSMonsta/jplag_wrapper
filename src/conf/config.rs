@@ -9,8 +9,6 @@ use std::io::{BufWriter, Write};
 use std::process::exit;
 use std::sync::LazyLock;
 use std::{fs, io};
-#[cfg(not(debug_assertions))]
-use tracing::Level;
 use tracing::{debug, info, warn};
 
 const DEFAULT_CONFIG_FILE: &str = "config.toml";
@@ -21,7 +19,7 @@ const DEFAULT_TMP_DIR: &str = "tmp/";
 const DEFAULT_RES_ZIP: &str = "results.zip";
 const DEFAULT_JAVA_VERSION: &str = "java";
 
-static ARGS: LazyLock<Args> = LazyLock::new(|| Args::parse());
+pub static ARGS: LazyLock<Args> = LazyLock::new(|| Args::parse());
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Config {
@@ -31,15 +29,6 @@ struct Config {
     ignore_file: Option<String>,
     jplag_jar: Option<String>,
     jplag_args: Option<Vec<String>>,
-}
-
-#[cfg(not(debug_assertions))]
-pub fn get_log_level() -> Level {
-    if ARGS.debug() {
-        Level::DEBUG
-    } else {
-        Level::INFO
-    }
 }
 
 /// Parse args for the bin, prioritizes cli over toml

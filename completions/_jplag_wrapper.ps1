@@ -21,6 +21,8 @@ Register-ArgumentCompleter -Native -CommandName 'jplag_wrapper' -ScriptBlock {
 
     $completions = @(switch ($command) {
         'jplag_wrapper' {
+            [CompletionResult]::new('-l', '-l', [CompletionResultType]::ParameterName, 'Log Level to use')
+            [CompletionResult]::new('--log-level', '--log-level', [CompletionResultType]::ParameterName, 'Log Level to use')
             [CompletionResult]::new('-c', '-c', [CompletionResultType]::ParameterName, 'Specify the config toml file to look for if you don''t want to use the default config.toml')
             [CompletionResult]::new('--config', '--config', [CompletionResultType]::ParameterName, 'Specify the config toml file to look for if you don''t want to use the default config.toml')
             [CompletionResult]::new('-s', '-s', [CompletionResultType]::ParameterName, 'Where the input file can be found')
@@ -35,8 +37,6 @@ Register-ArgumentCompleter -Native -CommandName 'jplag_wrapper' -ScriptBlock {
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print version')
             [CompletionResult]::new('--version', '--version', [CompletionResultType]::ParameterName, 'Print version')
             [CompletionResult]::new('--init', '--init', [CompletionResultType]::ParameterName, 'Initialize the config, will create (or override!) `config.toml` with all values and fill it with the defaults')
-            [CompletionResult]::new('-d', '-d', [CompletionResultType]::ParameterName, 'Set to use log level `debug`')
-            [CompletionResult]::new('--debug', '--debug', [CompletionResultType]::ParameterName, 'Set to use log level `debug`')
             [CompletionResult]::new('--keep-non-ascii', '--keep-non-ascii', [CompletionResultType]::ParameterName, 'Keep all non ASCII characters from all submissions')
             [CompletionResult]::new('-p', '-p', [CompletionResultType]::ParameterName, 'Set to not remove {{tmp_dir}} when the program finishes')
             [CompletionResult]::new('--preserve-tmp-dir', '--preserve-tmp-dir', [CompletionResultType]::ParameterName, 'Set to not remove {{tmp_dir}} when the program finishes')
