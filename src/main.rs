@@ -37,7 +37,6 @@ fn main() -> Result<()> {
         keep_non_ascii,
         jplag_jar,
         jplag_args,
-        ignore_jplag_output,
         additional_submission_dirs,
     ) = config::parse_args()
         .with_context(|| "Unable to parse args")?;
@@ -49,7 +48,6 @@ fn main() -> Result<()> {
         keep_non_ascii={keep_non_ascii}, \
         jplag_jar={jplag_jar}, \
         jplag_args={jplag_args:?}, \
-        ignore_jplag_output={ignore_jplag_output}, \
         additional_submission_dirs={additional_submission_dirs:?}");
 
     info!("Checking if java is executable");
@@ -70,7 +68,6 @@ fn main() -> Result<()> {
         &result_dir,
         &jplag_jar,
         jplag_args,
-        ignore_jplag_output,
     )
         .with_context(|| "Running jplag failed")?;
 
@@ -223,7 +220,6 @@ fn run(
     result_dir: &str,
     jplag_jar: &str,
     jplag_args: Vec<String>,
-    ignore_jplag_output: bool,
 ) -> Result<()> {
     let mut dbg_cmd = format!("java -jar {jplag_jar}");
 
@@ -243,7 +239,7 @@ fn run(
         .spawn()
         .with_context(|| format!("Unable to run jplag command {dbg_cmd}"))?;
 
-    helper::listen_for_output(&mut child, ignore_jplag_output)
+    helper::listen_for_output(&mut child)
         .with_context(|| format!("Unable to listen to stdout of jplag, cmd: {dbg_cmd}"))?;
 
     info!("Finished running jplag");
@@ -257,7 +253,7 @@ fn run(
         // Do not clean up on purpose, wwe want to see what caused the error
         bail!("Java jplag command failed, {status}");
     } else {
-        info!("{status}");
+        debug!("{status}");
         let current_dir = env::current_dir()
             .with_context(|| "Unable to get current dir")?;
         let result_dir = current_dir.join(result_dir);
@@ -273,8 +269,7 @@ fn run(
             result_file = file.path();
         }
 
-        info!("Look at the results by uploading {result_file:?} to \
-            https://jplag.github.io/JPlag/");
+        info!("The results are also saved in {result_file:?}");
         Ok(())
     }
 }
