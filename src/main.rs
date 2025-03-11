@@ -65,27 +65,29 @@ fn main() -> Result<()> {
     prepare(&temp_dir, keep_non_ascii)
         .with_context(|| "Preparing submissions failed")?;
 
-    run(
+    let finished = run(
         &result_dir,
         &jplag_jar,
         jplag_args,
     )
         .with_context(|| "Running jplag failed")?;
 
+    let runtime = finished - start;
+
     #[cfg(not(debug_assertions))]
     {
         if preserve_tmp_dir {
-            info!("Not cleaning up, goodbye! ({} ms)", start.elapsed().as_millis());
+            info!("Not cleaning up, goodbye! ({} ms)", runtime.as_millis());
         } else {
             info!("Cleaning up");
             cleanup(&temp_dir)
                 .with_context(|| "Cleanup failed")?;
-            info!("Finished cleanup, goodbye! ({} ms)", start.elapsed().as_millis());
+            info!("Finished cleanup, goodbye! ({} ms)", runtime.as_millis());
         }
     }
 
     #[cfg(debug_assertions)]
-    info!("Finished program, goodbye! ({} ms)", start.elapsed().as_millis());
+    info!("Finished program, goodbye! ({} ms)", runtime.as_millis());
 
     Ok(())
 }
@@ -221,7 +223,7 @@ fn run(
     result_dir: &str,
     jplag_jar: &str,
     jplag_args: Vec<String>,
-) -> Result<()> {
+) -> Result<Instant> {
     let mut dbg_cmd = format!("java -jar {jplag_jar}");
 
     for str in &jplag_args {
@@ -230,6 +232,8 @@ fn run(
 
     info!("Starting jplag");
     debug!("Raw command: {dbg_cmd}");
+
+    let jplag_start_ts = Instant::now();
 
     let mut child = Command::new("java")
         .arg("-jar")
@@ -271,7 +275,7 @@ fn run(
         }
 
         info!("The results are also saved in {result_file:?}");
-        Ok(())
+        Ok(jplag_start_ts)
     }
 }
 
