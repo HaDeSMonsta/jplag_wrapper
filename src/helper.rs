@@ -7,7 +7,7 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::{fs, io};
-use tracing::{debug, info, warn};
+use tracing::{debug, warn};
 use walkdir::WalkDir;
 use zip::ZipArchive;
 
@@ -229,40 +229,15 @@ where
     Ok(())
 }
 
-pub fn listen_for_output(program: &mut Child, ignore_output: bool) -> Result<()> {
+pub fn listen_for_output(program: &mut Child) -> Result<()> {
     match program.stdout {
         Some(ref mut out) => {
             let reader = BufReader::new(out);
 
-            let mut warn = false;
             for line in reader.lines() {
                 let line = line
                     .with_context(|| "Unable to parse line from jplag")?;
-                if ignore_output { continue; }
-                let lower = line.to_lowercase();
-
-                if warn {
-                    warn!("{line}");
-                    if lower.contains("^") { warn = false; }
-                    continue;
-                }
-
-                if lower.contains("error") ||
-                    lower.contains("warn") ||
-                    lower.contains("fail") {
-                    // Yes, jplag sends it errors to stdout
-                    if line.contains("error:") {
-                        warn = true;
-                    }
-
-                    warn!("{line}");
-                    continue;
-                }
-                if lower.contains("submissions") {
-                    info!("{line}");
-                    continue;
-                }
-                debug!("{line}");
+                println!("{line}");
             }
         }
         None => warn!("No output :("),
