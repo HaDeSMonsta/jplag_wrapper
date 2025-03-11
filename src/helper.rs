@@ -1,4 +1,4 @@
-use std::{fs, io};
+use anyhow::{anyhow, Context, Result};
 use std::collections::HashSet;
 use std::ffi::OsStr;
 use std::fmt::Debug;
@@ -6,8 +6,8 @@ use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
-use anyhow::{anyhow, Context, Result};
-use tracing::{debug, info, warn};
+use std::{fs, io};
+use tracing::{debug, warn};
 use walkdir::WalkDir;
 use zip::ZipArchive;
 
@@ -179,7 +179,7 @@ where
 }
 
 /// Replace diacritics and remove all non ASCII characters
-pub fn clean_non_ascii<P>(path: P, remove_non_ascii: bool) -> Result<()>
+pub fn clean_non_ascii<P>(path: P, keep_non_ascii: bool) -> Result<()>
 where
     P: AsRef<Path> + Debug,
 {
@@ -195,7 +195,11 @@ where
 
         let file_path = entry.path();
 
-        if file_path.is_dir() || file_path.extension() != Some(OsStr::new("java")) { continue; }
+        if file_path.is_dir()
+            || file_path.extension()
+                        .and_then(|ext| ext.to_str())
+                        .map(|ext| ext.eq_ignore_ascii_case("java"))
+            != Some(true) { continue; }
 
         debug!("Checking {file_path:?} for diacritics");
 
@@ -203,11 +207,11 @@ where
             .with_context(|| format!("Unable to read {file_path:?}"))?;
 
         let mut sanitized_content = replacements.iter()
-                                            .fold(content.clone(), |acc, &(from, to)| {
-                                                acc.replace(from, to)
-                                            });
+                                                .fold(content.clone(), |acc, &(from, to)| {
+                                                    acc.replace(from, to)
+                                                });
 
-        if remove_non_ascii {
+        if !keep_non_ascii {
             sanitized_content = sanitized_content
                 .replace(|c: char| !c.is_ascii(), "");
         }
@@ -225,43 +229,15 @@ where
     Ok(())
 }
 
-pub fn listen_for_output(program: &mut Child, ignore_output: bool) -> Result<()> {
+pub fn listen_for_output(program: &mut Child) -> Result<()> {
     match program.stdout {
         Some(ref mut out) => {
             let reader = BufReader::new(out);
 
-            #[cfg(not(feature = "legacy"))]
-            let mut warn = false;
             for line in reader.lines() {
                 let line = line
                     .with_context(|| "Unable to parse line from jplag")?;
-                if ignore_output { continue; }
-                let lower = line.to_lowercase();
-
-                #[cfg(not(feature = "legacy"))]
-                if warn {
-                    warn!("{line}");
-                    if lower.contains("^") { warn = false; }
-                    continue;
-                }
-
-                if lower.contains("error") ||
-                    lower.contains("warn") ||
-                    lower.contains("fail") {
-                    // Yes, jplag sends it errors to stdout
-                    #[cfg(not(feature = "legacy"))]
-                    if line.contains("error:") {
-                        warn = true;
-                    }
-
-                    warn!("{line}");
-                    continue;
-                }
-                if lower.contains("submissions") {
-                    info!("{line}");
-                    continue;
-                }
-                debug!("{line}");
+                println!("{line}");
             }
         }
         None => warn!("No output :("),
