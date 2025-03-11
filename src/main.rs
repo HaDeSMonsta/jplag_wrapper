@@ -10,18 +10,19 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Instant;
-#[cfg(debug_assertions)]
 use tracing::Level;
 use tracing::{debug, info, warn};
 use tracing_subscriber::FmtSubscriber;
 use walkdir::WalkDir;
+use crate::conf::config::ARGS;
 
 fn main() -> Result<()> {
     let start = Instant::now();
-    #[cfg(not(debug_assertions))]
-    let log_level = config::get_log_level();
-    #[cfg(debug_assertions)]
-    let log_level = Level::DEBUG;
+
+    let log_level = ARGS.log_level()
+                        .parse::<Level>()
+                        .context("Unable to parse log level")?;
+
     let subscriber = FmtSubscriber::builder()
         .with_max_level(log_level)
         .finish();

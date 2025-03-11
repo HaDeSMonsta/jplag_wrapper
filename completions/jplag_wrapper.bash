@@ -19,12 +19,20 @@ _jplag_wrapper() {
 
     case "${cmd}" in
         jplag_wrapper)
-            opts="-v -d -c -s -t -p -i -j -h --version --init --debug --keep-non-ascii --config --source-zip --target-dir --tmp-dir --preserve-tmp-dir --ignore-file --ignore-output --jplag-jar --help [ADD_SUB_DIRS]... [JPLAG_ARGS]..."
+            opts="-v -l -c -s -t -p -i -j -h --version --init --log-level --keep-non-ascii --config --source-zip --target-dir --tmp-dir --preserve-tmp-dir --ignore-file --ignore-output --jplag-jar --help [ADD_SUB_DIRS]... [JPLAG_ARGS]..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --log-level)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -l)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 --config)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0

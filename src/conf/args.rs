@@ -3,7 +3,10 @@ use std::process::exit;
 
 const BINARY_NAME: &str = env!("CARGO_PKG_NAME");
 const BINARY_VERSION: &str = env!("CARGO_PKG_VERSION");
-
+#[cfg(debug_assertions)]
+const DEFAULT_LOG_LEVEL_STR: &str = "debug";
+#[cfg(not(debug_assertions))]
+const DEFAULT_LOG_LEVEL_STR: &str = "info";
 
 /// A jplag wrapper with sane defaults
 ///
@@ -26,11 +29,11 @@ pub struct Args {
     /// Except `ignore_file`, because the default is `None`
     #[clap(long)]
     init: bool,
-    /// Set to use log level `debug`
+    /// Log Level to use
     ///
-    /// Otherwise, `info` will be used
-    #[clap(short, long)]
-    debug: bool,
+    /// Possible values are: trace (5), debug (4), info (3), warn (2), error (1).
+    #[clap(short, long, default_value_t = String::from(DEFAULT_LOG_LEVEL_STR))]
+    pub log_level: String,
     /// Keep all non ASCII characters from all submissions
     ///
     /// jplag can't handle non ASCII characters properly, so we remove them by default.
@@ -130,8 +133,8 @@ impl Args {
         self.init
     }
 
-    pub fn debug(&self) -> bool {
-        self.debug
+    pub fn log_level(&self) -> &str {
+        &self.log_level
     }
 
     pub fn keep_non_ascii(&self) -> bool {
