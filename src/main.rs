@@ -7,9 +7,6 @@ use conf::config;
 use std::env;
 use std::fmt::Debug;
 use std::fs;
-#[cfg(feature = "legacy")]
-use std::path::Path;
-#[cfg(not(feature = "legacy"))]
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Instant;
@@ -121,7 +118,6 @@ where
 
     debug!("Removing result dir");
     let _ = fs::remove_dir_all(&result_dir);
-    #[cfg(not(feature = "legacy"))]
     fs::create_dir_all(&result_dir)?;
 
     debug!("Removing tmp dir");
@@ -264,29 +260,21 @@ fn run(
         info!("{status}");
         let current_dir = env::current_dir()
             .with_context(|| "Unable to get current dir")?;
-        #[cfg(not(feature = "legacy"))]
-        {
-            let result_dir = current_dir.join(result_dir);
+        let result_dir = current_dir.join(result_dir);
 
-            let mut result_file = PathBuf::from(format!("Something went wrong, \
+        let mut result_file = PathBuf::from(format!("Something went wrong, \
             there seems to be no result in {result_dir:?}"));
 
-            // This dir should only contain exactly one file
-            for file in fs::read_dir(&result_dir)
-                .with_context(|| format!("Unable to read result dir {result_dir:?}"))? {
-                let file = file
-                    .with_context(|| format!("Invalid file in {result_dir:?}"))?;
-                result_file = file.path();
-            }
+        // This dir should only contain exactly one file
+        for file in fs::read_dir(&result_dir)
+            .with_context(|| format!("Unable to read result dir {result_dir:?}"))? {
+            let file = file
+                .with_context(|| format!("Invalid file in {result_dir:?}"))?;
+            result_file = file.path();
+        }
 
-            info!("Look at the results by uploading {result_file:?} to \
+        info!("Look at the results by uploading {result_file:?} to \
             https://jplag.github.io/JPlag/");
-        }
-        #[cfg(feature = "legacy")]
-        {
-            let result_file = current_dir.join(format!("{result_dir}/index.html"));
-            info!("Look at the results by opening file://{} in your browser", result_file.display());
-        }
         Ok(())
     }
 }

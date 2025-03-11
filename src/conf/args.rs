@@ -107,18 +107,9 @@ pub struct Args {
     ///
     /// Expected input: foo/
     add_sub_dirs: Vec<String>,
-    #[cfg(not(feature = "legacy"))]
     /// Will be passed directly to jplag as arguments
     ///
     /// Defaults to `{{tmp_dir}} -r {{target_dir}}/results.zip -l java`
-    #[clap(last = true)]
-    jplag_args: Vec<String>,
-    #[cfg(feature = "legacy")]
-    /// Everything after `--`
-    ///
-    /// Will be passed directly to jplag as arguments
-    ///
-    /// Defaults to `-s {{tmp_dir}} -r {{target_dir}} -l java19`
     #[clap(last = true)]
     jplag_args: Vec<String>,
 }
