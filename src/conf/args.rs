@@ -17,7 +17,6 @@ const DEFAULT_LOG_LEVEL_STR: &str = "info";
 /// While `--init` creates a toml file with all settings,
 /// you only need to set the ones you want to change
 #[derive(Clone, Debug, Parser)]
-#[clap()]
 pub struct Args {
     /// Print version
     #[clap(short, long)]
@@ -33,7 +32,7 @@ pub struct Args {
     ///
     /// Possible values are: trace (5), debug (4), info (3), warn (2), error (1).
     #[clap(short, long, default_value_t = String::from(DEFAULT_LOG_LEVEL_STR))]
-    pub log_level: String,
+    log_level: String,
     /// Keep all non ASCII characters from all submissions
     ///
     /// jplag can't handle non ASCII characters properly, so we remove them by default.
