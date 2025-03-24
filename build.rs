@@ -5,6 +5,13 @@ use clap_complete::Shell::*;
 use std::fs;
 
 include!("src/conf/args.rs");
+// Somehow, this breaks rr (It acts, as if args.rs wouldn't exist in the normal project)
+// But only, if you open the project the first time when the build.rs file already exists
+// To solve, first run this
+// mv build.rs build.rs.off
+// Make sure rr rebuilds/the error is gone
+// mv build.rs.off build.rs
+// Now it should work
 
 const COMPLETIONS_OUT_DIR: &str = "completions/";
 
