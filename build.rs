@@ -4,6 +4,8 @@ use clap_complete::generate_to;
 use clap_complete::Shell::*;
 use std::fs;
 
+const BINARY_NAME: &str = env!("CARGO_PKG_NAME");
+
 include!("src/conf/args.rs");
 // Somehow, this breaks rr (It acts, as if args.rs wouldn't exist in the normal project)
 // But only, if you open the project the first time when the build.rs file already exists
@@ -40,3 +42,4 @@ pub fn generate_completions() -> Result<()> {
 
     Ok(())
 }
+

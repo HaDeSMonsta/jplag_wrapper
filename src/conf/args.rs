@@ -1,8 +1,5 @@
 use clap::Parser;
-use std::process::exit;
 
-const BINARY_NAME: &str = env!("CARGO_PKG_NAME");
-const BINARY_VERSION: &str = env!("CARGO_PKG_VERSION");
 #[cfg(debug_assertions)]
 const DEFAULT_LOG_LEVEL_STR: &str = "debug";
 #[cfg(not(debug_assertions))]
@@ -17,10 +14,8 @@ const DEFAULT_LOG_LEVEL_STR: &str = "info";
 /// While `--init` creates a toml file with all settings,
 /// you only need to set the ones you want to change
 #[derive(Clone, Debug, Parser)]
+#[clap(version)]
 pub struct Args {
-    /// Print version
-    #[clap(short, long)]
-    version: bool,
     /// Initialize the config,
     /// will create (or override!) `config.toml` with all values
     /// and fill it with the defaults
@@ -116,18 +111,8 @@ pub struct Args {
     jplag_args: Vec<String>,
 }
 
-/// Print "{BINARY_NAME} {BINARY_VERSION}" and exit
-pub fn version() {
-    println!("{BINARY_NAME} {BINARY_VERSION}");
-    exit(0);
-}
-
 #[allow(dead_code)]
 impl Args {
-    pub fn version(&self) -> bool {
-        self.version
-    }
-
     pub fn init(&self) -> bool {
         self.init
     }
@@ -180,3 +165,4 @@ impl Args {
         &self.jplag_args
     }
 }
+
