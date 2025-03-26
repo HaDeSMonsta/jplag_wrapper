@@ -31,8 +31,6 @@ set edit:completion:arg-completer[jplag_wrapper] = {|@words|
             cand --ignore-file 'Where to find the ignore file'
             cand -j 'Where the jplag jar can be found'
             cand --jplag-jar 'Where the jplag jar can be found'
-            cand -v 'Print version'
-            cand --version 'Print version'
             cand --init 'Initialize the config, will create (or override!) `config.toml` with all values and fill it with the defaults'
             cand --keep-non-ascii 'Keep all non ASCII characters from all submissions'
             cand -p 'Set to not remove {{tmp_dir}} when the program finishes'
@@ -40,6 +38,8 @@ set edit:completion:arg-completer[jplag_wrapper] = {|@words|
             cand --ignore-output 'Set to ignore the output of jplag'
             cand -h 'Print help (see more with ''--help'')'
             cand --help 'Print help (see more with ''--help'')'
+            cand -V 'Print version'
+            cand --version 'Print version'
         }
     ]
     $completions[$command]

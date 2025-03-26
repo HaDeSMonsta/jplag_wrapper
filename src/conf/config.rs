@@ -1,4 +1,3 @@
-use crate::conf::args;
 use crate::conf::args::Args;
 use anyhow::{bail, Context, Result};
 use clap::Parser;
@@ -52,9 +51,6 @@ pub fn parse_args() -> Result<(
     Vec<String>
 )> {
     debug!("Getting args");
-    if ARGS.version() {
-        args::version();
-    }
     if ARGS.init() {
         debug!("Initializing config");
         dump_default_config()
