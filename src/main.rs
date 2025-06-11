@@ -10,7 +10,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Instant;
-use tracing::Level;
+use tracing::{error, Level};
 use tracing::{debug, info, warn};
 use tracing_subscriber::FmtSubscriber;
 use walkdir::WalkDir;
@@ -182,6 +182,9 @@ where
                 }
             };
             if let Some(file) = archive_file {
+                error!(first = ?file, second = ?archive_file_path, "Fuck that guy");
+                archive_file = None;
+                break;
                 return Err(anyhow!("Found multiple archive files, expected one:\n\
                 \tFirst: {file:?}\n\
                 \tSecond: {archive_file_path:?}"));
@@ -190,15 +193,13 @@ where
         }
 
         let Some(archive_file) = archive_file else {
-            fs::remove_dir_all(&student_name_dir_path)
-                .with_context(|| format!("Unable to remove \
-                submission without archive: {student_name_dir_path:?}"))?;
             no_zip.push(student_name_dir_path.to_owned());
             continue;
         };
 
-        fun(&tmp_dir, &student_name_dir_path, &archive_file)
-            .with_context(|| format!("Unable to extract {archive_file:?}"))?;
+        if let Err(e) = fun(&tmp_dir, &student_name_dir_path, &archive_file) {
+            error!(?archive_file, error = ?e, "Unable to extract");
+        }
     }
 
     for no_zip_student in no_zip {
@@ -224,14 +225,13 @@ fn run(
     jplag_jar: &str,
     jplag_args: Vec<String>,
 ) -> Result<Instant> {
-    let mut dbg_cmd = format!("java -jar {jplag_jar}");
+    let mut jplag_cmd = format!("java -jar {jplag_jar}");
 
     for str in &jplag_args {
-        dbg_cmd.push_str(&format!(" {str}"));
+        jplag_cmd.push_str(&format!(" {str}"));
     }
 
-    info!("Starting jplag");
-    debug!("Raw command: {dbg_cmd}");
+    info!(cmd = jplag_cmd, "Starting jplag");
 
     let jplag_start_ts = Instant::now();
 
@@ -242,19 +242,19 @@ fn run(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .with_context(|| format!("Unable to run jplag command {dbg_cmd}"))?;
+        .with_context(|| format!("Unable to run jplag command {jplag_cmd}"))?;
 
     helper::listen_for_output(&mut child)
-        .with_context(|| format!("Unable to listen to stdout of jplag, cmd: {dbg_cmd}"))?;
+        .with_context(|| format!("Unable to listen to stdout of jplag, cmd: {jplag_cmd}"))?;
 
     info!("Finished running jplag");
 
     let status = child.wait()
-                      .with_context(|| format!("Unable to wait for child process {dbg_cmd}"))?;
+                      .with_context(|| format!("Unable to wait for child process {jplag_cmd}"))?;
 
     if !status.success() {
         warn!("Command failed, {status}");
-        warn!("To debug manually, run \"{dbg_cmd}\" in the current directory");
+        warn!("To debug manually, run \"{jplag_cmd}\" in the current directory");
         // Do not clean up on purpose, wwe want to see what caused the error
         bail!("Java jplag command failed, {status}");
     } else {

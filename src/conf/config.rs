@@ -15,7 +15,7 @@ const DEFAULT_SOURCE_FILE: &str = "submissions.zip";
 const DEFAULT_JPLAG_FILE: &str = "jplag.jar";
 const DEFAULT_TARGET_DIR: &str = "out/";
 const DEFAULT_TMP_DIR: &str = "tmp/";
-const DEFAULT_RES_ZIP: &str = "results.zip";
+const DEFAULT_RES_ZIP: &str = "results";
 const DEFAULT_JAVA_VERSION: &str = "java";
 
 pub static ARGS: LazyLock<Args> = LazyLock::new(|| Args::parse());
