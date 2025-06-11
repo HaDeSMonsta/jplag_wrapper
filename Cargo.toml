@@ -7,24 +7,24 @@ authors = ["HaDeS_Monsta"]
 [dependencies]
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
-clap = { version = "4.5.32", features = ["derive"] }
+clap = { version = "4.5.40", features = ["derive"] }
 serde = { version = "1.0.219", features = ["derive"] }
-toml = "0.8.20"
-anyhow = "1.0.97"
+toml = "0.8.23"
+anyhow = "1.0.98"
 walkdir = "2.5.0"
-zip = "2.2.3"
-flate2 = "1.1.0"
+zip = "4.0.0"
+flate2 = "1.1.2"
 tar = "0.4.44"
 sevenz-rust = "0.6.1"
 unrar = "0.5.8"
 
 [build-dependencies]
-anyhow = "1.0.97"
-clap = {version = "4.5.32", features = ["derive"]}
-clap_complete = "4.5.46"
+anyhow = "1.0.98"
+clap = {version = "4.5.40", features = ["derive"]}
+clap_complete = "4.5.54"
 serde = { version = "1.0.219", features = ["derive"] }
 tracing = "0.1.41"
-toml = "0.8.20"
+toml = "0.8.23"
 
 [profile.release]
 lto = true
