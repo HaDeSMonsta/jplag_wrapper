@@ -1,6 +1,7 @@
 target/
 *.env
 *.zip
+*.jar
 tmp/
 out/
 config.toml
