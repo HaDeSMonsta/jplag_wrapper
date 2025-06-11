@@ -4,7 +4,7 @@ This is a wrapper for the [jplag plagiarism detection tool.](https://github.com/
 
 # Prerequisites
 
-- [jplag v6.0.0](https://github.com/jplag/JPlag/releases/tag/v6.0.0)
+- [jplag v6.1.0](https://github.com/jplag/JPlag/releases/tag/v6.1.0)
 - java
 - basic command line knowledge
 - a zip file with submissions
@@ -22,7 +22,7 @@ This is a wrapper for the [jplag plagiarism detection tool.](https://github.com/
     - The generated file will have default values set for most variables (more with `--help`)
     - You don't need to set variables you do not wish to override
 - Get a jar file from [jplags releases](https://github.com/jplag/JPlag/releases)
-  - This is tested with `v6.0.0`
+  - This is tested with `v6.1.0`
 - Get a zip file with submissions
   - We assume exactly one input zip file
   - Which extracts to at zero or more subdirs (zero would be kinda weird, but you do you)
