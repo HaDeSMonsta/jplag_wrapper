@@ -1,5 +1,5 @@
 use crate::conf::args::Args;
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
@@ -19,12 +19,10 @@ const DEFAULT_RES_ZIP: &str = "results";
 const DEFAULT_JAVA_VERSION: &str = "java";
 
 pub static ARGS: LazyLock<Args> = LazyLock::new(|| Args::parse());
-static CONFIG: LazyLock<Config> = LazyLock::new(||
-    match parse_toml() {
-        Ok(c) => c,
-        Err(e) => panic!("Unable to parse config: {e}")
-    }
-);
+static CONFIG: LazyLock<Config> = LazyLock::new(|| match parse_toml() {
+    Ok(c) => c,
+    Err(e) => panic!("Unable to parse config: {e}"),
+});
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Config {
@@ -48,35 +46,32 @@ pub fn parse_args() -> Result<(
     bool,
     String,
     Vec<String>,
-    Vec<String>
+    Vec<String>,
 )> {
     debug!("Getting args");
     if ARGS.init() {
         debug!("Initializing config");
-        dump_default_config()
-            .with_context(|| "Unable to write default config")?;
+        dump_default_config().with_context(|| "Unable to write default config")?;
         exit(0);
     };
 
     debug!("Successfully parsed toml");
 
-    let source = ARGS.source_zip()
-                     .clone()
-                     .unwrap_or_else(|| {
-                         CONFIG.source_zip
-                               .clone()
-                               .unwrap_or_else(|| DEFAULT_SOURCE_FILE.to_string())
-                     });
+    let source = ARGS.source_zip().clone().unwrap_or_else(|| {
+        CONFIG
+            .source_zip
+            .clone()
+            .unwrap_or_else(|| DEFAULT_SOURCE_FILE.to_string())
+    });
 
     debug!("Set source to {source}");
 
-    let tmp_dir = ARGS.tmp_dir()
-                      .clone()
-                      .unwrap_or_else(|| {
-                          CONFIG.tmp_dir
-                                .clone()
-                                .unwrap_or_else(|| DEFAULT_TMP_DIR.to_string())
-                      });
+    let tmp_dir = ARGS.tmp_dir().clone().unwrap_or_else(|| {
+        CONFIG
+            .tmp_dir
+            .clone()
+            .unwrap_or_else(|| DEFAULT_TMP_DIR.to_string())
+    });
 
     debug!("Set tmp_dir to {tmp_dir}");
 
@@ -84,13 +79,12 @@ pub fn parse_args() -> Result<(
 
     debug!("Set preserve_tmp_dir to {preserve_tmp_dir}");
 
-    let target_dir = ARGS.target_dir()
-                         .clone()
-                         .unwrap_or_else(|| {
-                             CONFIG.target_dir
-                                   .clone()
-                                   .unwrap_or_else(|| DEFAULT_TARGET_DIR.to_string())
-                         });
+    let target_dir = ARGS.target_dir().clone().unwrap_or_else(|| {
+        CONFIG
+            .target_dir
+            .clone()
+            .unwrap_or_else(|| DEFAULT_TARGET_DIR.to_string())
+    });
 
     debug!("Set target dir to {target_dir}");
 
@@ -98,46 +92,41 @@ pub fn parse_args() -> Result<(
 
     debug!("Remove non ascii {keep_non_ascii}");
 
-    let jplag_jar = ARGS.jplag_jar()
-                        .clone()
-                        .unwrap_or_else(|| {
-                            CONFIG.jplag_jar
-                                  .clone()
-                                  .unwrap_or_else(|| DEFAULT_JPLAG_FILE.to_string())
-                        });
+    let jplag_jar = ARGS.jplag_jar().clone().unwrap_or_else(|| {
+        CONFIG
+            .jplag_jar
+            .clone()
+            .unwrap_or_else(|| DEFAULT_JPLAG_FILE.to_string())
+    });
 
     debug!("Set jplag_jar to {jplag_jar}");
 
-    let mut jplag_args = ARGS.jplag_args()
-                             .clone();
+    let mut jplag_args = ARGS.jplag_args().clone();
     let mut jplag_args_overridden = true;
     if jplag_args.is_empty() {
-        let mut to_append = CONFIG.jplag_args
-                                  .clone()
-                                  .unwrap_or_else(|| {
-                                      jplag_args_overridden = false;
-                                      vec![
-                                          tmp_dir.clone(),
-                                          String::from("-r"),
-                                          format!("{target_dir}/{DEFAULT_RES_ZIP}"),
-                                          String::from("-l"),
-                                          String::from(DEFAULT_JAVA_VERSION),
-                                      ]
-                                  });
+        let mut to_append = CONFIG.jplag_args.clone().unwrap_or_else(|| {
+            jplag_args_overridden = false;
+            vec![
+                tmp_dir.clone(),
+                String::from("-r"),
+                format!("{target_dir}/{DEFAULT_RES_ZIP}"),
+                String::from("-l"),
+                String::from(DEFAULT_JAVA_VERSION),
+            ]
+        });
         jplag_args.append(&mut to_append);
     }
 
     if !jplag_args_overridden {
         debug!("Jplag args were not overridden, checking for ignore file");
-        let ignore_file = ARGS.ignore_file()
-                              .clone()
-                              .or(CONFIG.ignore_file.clone());
+        let ignore_file = ARGS.ignore_file().clone().or(CONFIG.ignore_file.clone());
 
         if let Some(ignore_file) = ignore_file {
             debug!("Ignore file is set: {ignore_file}");
 
             if !fs::exists(&ignore_file)
-                .with_context(|| format!("Unable to check if \"{ignore_file}\" exists"))? {
+                .with_context(|| format!("Unable to check if \"{ignore_file}\" exists"))?
+            {
                 bail!("Ignore file \"{ignore_file}\" not found");
             }
 
@@ -171,13 +160,13 @@ pub fn parse_args() -> Result<(
 }
 
 fn parse_toml() -> Result<Config> {
-    let conf_file = ARGS.config()
-                        .clone()
-                        .unwrap_or_else(|| DEFAULT_CONFIG_FILE.to_string());
+    let conf_file = ARGS
+        .config()
+        .clone()
+        .unwrap_or_else(|| DEFAULT_CONFIG_FILE.to_string());
 
     debug!("Parsing toml, source: {conf_file}");
-    if !fs::exists(&conf_file)
-        .with_context(|| format!("Unable to check if {conf_file} exists"))? {
+    if !fs::exists(&conf_file).with_context(|| format!("Unable to check if {conf_file} exists"))? {
         debug!("{conf_file} does not exist");
         if ARGS.config().is_some() {
             bail!("Overridden config file \"{conf_file}\" not found");
@@ -198,23 +187,26 @@ fn parse_toml() -> Result<Config> {
         .with_context(|| format!("Failed to read from config file {conf_file}"))?;
 
     debug!("Parsing toml, raw: {toml}");
-    Ok(
-        toml::from_str::<Config>(&toml)
-            .with_context(|| format!(
-                "Unable to parse to Config, raw string:\
+    Ok(toml::from_str::<Config>(&toml).with_context(|| {
+        format!(
+            "Unable to parse to Config, raw string:\
             \n\"\"\"\n\
             {toml}\
             \"\"\"\
-            "))?
-    )
+            "
+        )
+    })?)
 }
 
 fn dump_default_config() -> Result<()> {
     if fs::exists(DEFAULT_CONFIG_FILE)
-        .with_context(|| format!("Unable to check if \"{DEFAULT_CONFIG_FILE}\" exists"))? {
+        .with_context(|| format!("Unable to check if \"{DEFAULT_CONFIG_FILE}\" exists"))?
+    {
         warn!("\"{DEFAULT_CONFIG_FILE}\" already exists, do you want to override it? [Y/n]");
         let mut input = String::new();
-        io::stdin().read_line(&mut input).with_context(|| "Unable to read stdin")?;
+        io::stdin()
+            .read_line(&mut input)
+            .with_context(|| "Unable to read stdin")?;
         if input.to_lowercase().trim() != "y" {
             info!("Aborting");
             return Ok(());
@@ -241,7 +233,9 @@ fn dump_default_config() -> Result<()> {
         .truncate(true)
         .write(true)
         .open(DEFAULT_CONFIG_FILE)
-        .with_context(|| format!("Failed to open/create/truncate config file: {DEFAULT_CONFIG_FILE}"))?;
+        .with_context(|| {
+            format!("Failed to open/create/truncate config file: {DEFAULT_CONFIG_FILE}")
+        })?;
     debug!("Opened default config file");
 
     let mut writer = BufWriter::new(file);
@@ -249,19 +243,21 @@ fn dump_default_config() -> Result<()> {
     let conf_str = toml::to_string_pretty(&conf)
         .with_context(|| format!("Unable to parse default config (how???) {conf:?}"))?;
 
-    debug!("Writing default config:\
+    debug!(
+        "Writing default config:\
         \"\"\"\n\
         {conf_str}\
         \"\"\"\
-    ");
+    "
+    );
 
     writeln!(writer, "{conf_str}")
         .with_context(|| format!("Unable to write default config to {DEFAULT_CONFIG_FILE}"))?;
-    writer.flush()
-          .with_context(|| format!("Unable to flush config file {DEFAULT_CONFIG_FILE}"))?;
+    writer
+        .flush()
+        .with_context(|| format!("Unable to flush config file {DEFAULT_CONFIG_FILE}"))?;
 
     info!("Created default config");
 
     Ok(())
 }
-

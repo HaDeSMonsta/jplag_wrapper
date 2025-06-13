@@ -165,4 +165,3 @@ impl Args {
         &self.jplag_args
     }
 }
-

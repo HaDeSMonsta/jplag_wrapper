@@ -1,8 +1,9 @@
-mod helper;
 mod archive_handler;
 mod conf;
+mod helper;
 
-use anyhow::{anyhow, bail, Context, Result};
+use crate::conf::config::ARGS;
+use anyhow::{Context, Result, anyhow, bail};
 use conf::config;
 use std::env;
 use std::fmt::Debug;
@@ -10,22 +11,20 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Instant;
-use tracing::{error, Level};
+use tracing::{Level, error};
 use tracing::{debug, info, warn};
 use tracing_subscriber::FmtSubscriber;
 use walkdir::WalkDir;
-use crate::conf::config::ARGS;
 
 fn main() -> Result<()> {
     let start = Instant::now();
 
-    let log_level = ARGS.log_level()
-                        .parse::<Level>()
-                        .context("Unable to parse log level")?;
+    let log_level = ARGS
+        .log_level()
+        .parse::<Level>()
+        .context("Unable to parse log level")?;
 
-    let subscriber = FmtSubscriber::builder()
-        .with_max_level(log_level)
-        .finish();
+    let subscriber = FmtSubscriber::builder().with_max_level(log_level).finish();
     tracing::subscriber::set_global_default(subscriber)
         .with_context(|| "setting default subscriber failed")?;
     debug!("Default subscriber is set");
@@ -39,9 +38,9 @@ fn main() -> Result<()> {
         jplag_jar,
         jplag_args,
         additional_submission_dirs,
-    ) = config::parse_args()
-        .with_context(|| "Unable to parse args")?;
-    debug!("Full config: \
+    ) = config::parse_args().with_context(|| "Unable to parse args")?;
+    debug!(
+        "Full config: \
         source_file={source_file}, \
         temp_dir={temp_dir}, \
         preserve_tmp_dir={preserve_tmp_dir}, \
@@ -49,28 +48,29 @@ fn main() -> Result<()> {
         keep_non_ascii={keep_non_ascii}, \
         jplag_jar={jplag_jar}, \
         jplag_args={jplag_args:?}, \
-        additional_submission_dirs={additional_submission_dirs:?}");
+        additional_submission_dirs={additional_submission_dirs:?}"
+    );
 
     info!("Checking if java is executable");
 
-    helper::check_java_executable()
-        .with_context(|| "Check if java is executable failed")?;
+    helper::check_java_executable().with_context(|| "Check if java is executable failed")?;
 
     info!("Check successful");
 
     info!("Initializing project");
-    init(&source_file, &result_dir, &temp_dir, &jplag_jar, &additional_submission_dirs)
+    init(
+        &source_file,
+        &result_dir,
+        &temp_dir,
+        &jplag_jar,
+        &additional_submission_dirs,
+    )
         .with_context(|| "Initialization failed")?;
 
-    prepare(&temp_dir, keep_non_ascii)
-        .with_context(|| "Preparing submissions failed")?;
+    prepare(&temp_dir, keep_non_ascii).with_context(|| "Preparing submissions failed")?;
 
-    let finished = run(
-        &result_dir,
-        &jplag_jar,
-        jplag_args,
-    )
-        .with_context(|| "Running jplag failed")?;
+    let finished =
+        run(&result_dir, &jplag_jar, jplag_args).with_context(|| "Running jplag failed")?;
 
     let runtime = finished - start;
 
@@ -80,8 +80,7 @@ fn main() -> Result<()> {
             info!("Not cleaning up, goodbye! ({} ms)", runtime.as_millis());
         } else {
             info!("Cleaning up");
-            cleanup(&temp_dir)
-                .with_context(|| "Cleanup failed")?;
+            cleanup(&temp_dir).with_context(|| "Cleanup failed")?;
             info!("Finished cleanup, goodbye! ({} ms)", runtime.as_millis());
         }
     }
@@ -106,13 +105,15 @@ where
 {
     debug!("Checking if source zip file exist");
     if !fs::exists(&source_file)
-        .with_context(|| format!("Unable to confirm if {source_file:?} exists"))? {
+        .with_context(|| format!("Unable to confirm if {source_file:?} exists"))?
+    {
         bail!("Unable to find source zip file {source_file:?}");
     }
 
     debug!("Checking if jplag jar file exists");
     if !fs::exists(&jplag_jar)
-        .with_context(|| format!("Unable to confirm if \"{jplag_jar}\" exists"))? {
+        .with_context(|| format!("Unable to confirm if \"{jplag_jar}\" exists"))?
+    {
         bail!("Unable to find jplag jar file \"{jplag_jar}\"");
     }
 
@@ -126,9 +127,12 @@ where
     helper::unzip_to(&source_file, &tmp_dir)
         .with_context(|| format!("Unable to extract {source_file:?} to {tmp_dir:?}"))?;
 
-    helper::add_subs(&additional_submission_dirs, &tmp_dir)
-        .with_context(|| format!("Unable to copy additional submissions \
-        {additional_submission_dirs:?} to {tmp_dir:?}"))?;
+    helper::add_subs(&additional_submission_dirs, &tmp_dir).with_context(|| {
+        format!(
+            "Unable to copy additional submissions \
+        {additional_submission_dirs:?} to {tmp_dir:?}"
+        )
+    })?;
 
     info!("Unzipped {source_file:?} to {tmp_dir:?}");
 
@@ -144,15 +148,15 @@ where
 
     let mut no_zip = vec![];
 
-    for dir in fs::read_dir(tmp_dir)
-        .with_context(|| format!("Unable to read {tmp_dir:?}"))? {
+    for dir in fs::read_dir(tmp_dir).with_context(|| format!("Unable to read {tmp_dir:?}"))? {
         let dir = dir.with_context(|| format!("Unable to read a dir in {tmp_dir:?}"))?;
         let student_name_dir_path = dir.path();
         debug!("Processing path {student_name_dir_path:?}");
 
         if !student_name_dir_path.is_dir() {
             return Err(anyhow!(
-                "Everything in {tmp_dir:?} should be a dir, found {student_name_dir_path:?}"));
+                "Everything in {tmp_dir:?} should be a dir, found {student_name_dir_path:?}"
+            ));
         }
 
         let mut archive_file = None;
@@ -161,9 +165,10 @@ where
             let archive = archive?;
             let archive_file_path = archive.path();
 
-            let archive_extension = archive_file_path.extension()
-                                                     .and_then(|e| e.to_str())
-                                                     .and_then(|e| Some(e.to_ascii_lowercase()));
+            let archive_extension = archive_file_path
+                .extension()
+                .and_then(|e| e.to_str())
+                .and_then(|e| Some(e.to_ascii_lowercase()));
 
             fun = match archive_extension {
                 Some(ref s) if s == "zip" => archive_handler::zip,
@@ -174,9 +179,12 @@ where
                 _ => {
                     if archive.path().is_file() {
                         debug!("Found non archive file {archive:?}, removing");
-                        fs::remove_file(&archive_file_path)
-                            .with_context(|| format!("Unable to remove non archive file\
-                            {archive:?}"))?;
+                        fs::remove_file(&archive_file_path).with_context(|| {
+                            format!(
+                                "Unable to remove non archive file\
+                            {archive:?}"
+                            )
+                        })?;
                     }
                     continue;
                 }
@@ -185,9 +193,11 @@ where
                 error!(first = ?file, second = ?archive_file_path, "Fuck that guy");
                 archive_file = None;
                 break;
-                return Err(anyhow!("Found multiple archive files, expected one:\n\
+                return Err(anyhow!(
+                    "Found multiple archive files, expected one:\n\
                 \tFirst: {file:?}\n\
-                \tSecond: {archive_file_path:?}"));
+                \tSecond: {archive_file_path:?}"
+                ));
             }
             archive_file = Some(archive_file_path.to_owned());
         }
@@ -204,14 +214,16 @@ where
 
     for no_zip_student in no_zip {
         warn!("No zip file found in {no_zip_student:?}, removing path");
-        fs::remove_dir_all(&no_zip_student)
-            .with_context(|| format!("Unable to remove path of student who didn't \
-            hand in an assignment: {no_zip_student:?}"))?;
+        fs::remove_dir_all(&no_zip_student).with_context(|| {
+            format!(
+                "Unable to remove path of student who didn't \
+            hand in an assignment: {no_zip_student:?}"
+            )
+        })?;
     }
 
     info!("Unzipped all submissions, Sanitizing output files");
-    helper::sanitize_submissions(&tmp_dir)
-        .with_context(|| "Unable to sanitize output files")?;
+    helper::sanitize_submissions(&tmp_dir).with_context(|| "Unable to sanitize output files")?;
 
     info!("Sanitized output files, replacing diacritics");
     helper::clean_non_ascii(&tmp_dir, keep_non_ascii)
@@ -220,11 +232,7 @@ where
     Ok(())
 }
 
-fn run(
-    result_dir: &str,
-    jplag_jar: &str,
-    jplag_args: Vec<String>,
-) -> Result<Instant> {
+fn run(result_dir: &str, jplag_jar: &str, jplag_args: Vec<String>) -> Result<Instant> {
     let mut jplag_cmd = format!("java -jar {jplag_jar}");
 
     for str in &jplag_args {
@@ -249,8 +257,9 @@ fn run(
 
     info!("Finished running jplag");
 
-    let status = child.wait()
-                      .with_context(|| format!("Unable to wait for child process {jplag_cmd}"))?;
+    let status = child
+        .wait()
+        .with_context(|| format!("Unable to wait for child process {jplag_cmd}"))?;
 
     if !status.success() {
         warn!("Command failed, {status}");
@@ -259,18 +268,19 @@ fn run(
         bail!("Java jplag command failed, {status}");
     } else {
         debug!("{status}");
-        let current_dir = env::current_dir()
-            .with_context(|| "Unable to get current dir")?;
+        let current_dir = env::current_dir().with_context(|| "Unable to get current dir")?;
         let result_dir = current_dir.join(result_dir);
 
-        let mut result_file = PathBuf::from(format!("Something went wrong, \
-            there seems to be no result in {result_dir:?}"));
+        let mut result_file = PathBuf::from(format!(
+            "Something went wrong, \
+            there seems to be no result in {result_dir:?}"
+        ));
 
         // This dir should only contain exactly one file
         for file in fs::read_dir(&result_dir)
-            .with_context(|| format!("Unable to read result dir {result_dir:?}"))? {
-            let file = file
-                .with_context(|| format!("Invalid file in {result_dir:?}"))?;
+            .with_context(|| format!("Unable to read result dir {result_dir:?}"))?
+        {
+            let file = file.with_context(|| format!("Invalid file in {result_dir:?}"))?;
             result_file = file.path();
         }
 
