@@ -1,10 +1,11 @@
+use std::fmt::Debug;
 use std::fs;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{bail, Context, Result};
 use flate2::read::GzDecoder;
-use tracing::debug;
+use tracing::{debug, instrument};
 use crate::helper;
 
 // tmp dir: tmp/
@@ -12,12 +13,13 @@ use crate::helper;
 // archive file path: tmp/name/archive
 // zip dir name: name/
 
+#[instrument]
 pub fn zip<P, Q, R>(tmp_dir: P, student_name_dir_path: Q, archive_file_path: R)
     -> Result<()>
 where
-    P: AsRef<Path>,
-    Q: AsRef<Path>,
-    R: AsRef<Path>,
+    P: AsRef<Path> + Debug,
+    Q: AsRef<Path> + Debug,
+    R: AsRef<Path> + Debug,
 {
     let tmp_dir = tmp_dir.as_ref();
     let student_name_dir_path = student_name_dir_path.as_ref();
@@ -41,22 +43,23 @@ where
     helper::unzip_to(&archive_file_path, &dest)
         .with_context(|| format!("Unable to unzip {archive_file_path:?} to {dest:?}"))?;
 
-    debug!("Unzipped {archive_file_path:?} to {dest:?}");
+    debug!("Successfully decompressed, removing source");
 
     fs::remove_file(&archive_file_path)
         .with_context(|| format!("Unable to remove {archive_file_path:?}"))?;
 
-    debug!("Removed {archive_file_path:?}");
+    debug!("Successfully removed source");
 
     Ok(())
 }
 
+#[instrument]
 pub fn rar<P, Q, R>(tmp_dir: P, student_name_dir_path: Q, archive_file_path: R)
     -> Result<()>
 where
-    P: AsRef<Path>,
-    Q: AsRef<Path>,
-    R: AsRef<Path>,
+    P: AsRef<Path> + Debug,
+    Q: AsRef<Path> + Debug,
+    R: AsRef<Path> + Debug,
 {
     let tmp_dir = tmp_dir.as_ref();
     let student_name_dir_path = student_name_dir_path.as_ref();
@@ -92,44 +95,54 @@ where
         }
     }
 
+    debug!("Successfully unrawred, removing source");
+
     fs::remove_file(&archive_file_path)
         .with_context(|| format!("Unable to remove {archive_file_path:?}"))?;
+
+    debug!("Successfully removed source");
 
     Ok(())
 }
 
+#[instrument(skip(_tmp_dir))]
 pub fn sz<P, Q, R>(_tmp_dir: P, student_name_dir_path: Q, archive_file_path: R)
     -> Result<()>
 where
-    P: AsRef<Path>,
-    Q: AsRef<Path>,
-    R: AsRef<Path>,
+    P: AsRef<Path> + Debug,
+    Q: AsRef<Path> + Debug,
+    R: AsRef<Path> + Debug,
 {
     let student_name_dir_path = student_name_dir_path.as_ref();
     let archive_file_path = archive_file_path.as_ref();
 
-    debug!("Extracting 7z {archive_file_path:?} to {student_name_dir_path:?}");
+    debug!("Extracting 7z archive");
 
     sevenz_rust::decompress_file(archive_file_path, student_name_dir_path)
         .with_context(|| format!("Unable to decompress {student_name_dir_path:?}"))?;
+    
+    debug!("Successfully decompressed, removing source");
 
     fs::remove_file(&archive_file_path)
         .with_context(|| format!("Unable to remove {archive_file_path:?} after extracting"))?;
 
+    debug!("Successfully removed source");
+    
     Ok(())
 }
 
+#[instrument(skip(_tmp_dir))]
 pub fn tar<P, Q, R>(_tmp_dir: P, student_name_dir_path: Q, archive_file_path: R)
     -> Result<()>
 where
-    P: AsRef<Path>,
-    Q: AsRef<Path>,
-    R: AsRef<Path>,
+    P: AsRef<Path> + Debug,
+    Q: AsRef<Path> + Debug,
+    R: AsRef<Path> + Debug,
 {
     let student_name_dir_path = student_name_dir_path.as_ref();
     let archive_file_path = archive_file_path.as_ref();
 
-    debug!("Untaring {archive_file_path:?} to {student_name_dir_path:?}");
+    debug!("Untaring archive");
 
     tar::Archive::new(
         BufReader::new(
@@ -139,26 +152,28 @@ where
           .with_context(|| format!("Unable to untar {archive_file_path:?} \
         into {student_name_dir_path:?}"))?;
 
-    debug!("Successfully untared {archive_file_path:?}, removing source");
+    debug!("Successfully untared, removing source");
 
     fs::remove_file(&archive_file_path)
         .with_context(|| format!("Unable to remove {archive_file_path:?}"))?;
 
-    debug!("Successfully removed {archive_file_path:?}");
+    debug!("Successfully removed source");
 
     Ok(())
 }
+
+#[instrument(skip(_tmp_dir))]
 pub fn gz<P, Q, R>(_tmp_dir: P, student_name_dir_path: Q, archive_file_path: R)
     -> Result<()>
 where
-    P: AsRef<Path>,
-    Q: AsRef<Path>,
-    R: AsRef<Path>,
+    P: AsRef<Path> + Debug,
+    Q: AsRef<Path> + Debug,
+    R: AsRef<Path> + Debug,
 {
     let student_name_dir_path = student_name_dir_path.as_ref();
     let archive_file_path = archive_file_path.as_ref();
 
-    debug!("Ungzipping {archive_file_path:?} to {student_name_dir_path:?}");
+    debug!("Ungzipping archive");
 
     tar::Archive::new(
         GzDecoder::new(
@@ -172,21 +187,23 @@ where
      .with_context(|| format!("Unable to extract {archive_file_path:?} \
         to {student_name_dir_path:?}"))?;
 
-    debug!("Successfully ungzipped {student_name_dir_path:?}, removing source");
+    debug!("Successfully ungzipped, removing source");
 
     fs::remove_file(&archive_file_path)
         .with_context(|| format!("Unable to remove {archive_file_path:?}"))?;
 
-    debug!("Successfully removed {archive_file_path:?}");
+    debug!("Successfully removed source");
 
     Ok(())
 }
+
+#[instrument]
 pub fn dummy<P, Q, R>(_tmp_dir: P, _student_name_dir_path: Q, _archive_file_path: R)
     -> Result<()>
 where
-    P: AsRef<Path>,
-    Q: AsRef<Path>,
-    R: AsRef<Path>,
+    P: AsRef<Path> + Debug,
+    Q: AsRef<Path> + Debug,
+    R: AsRef<Path> + Debug,
 {
-    Err(anyhow!("Called dummy extract function => `fun` was not initialized"))
+   bail!("Called dummy extract function => `fun` was not initialized")
 }
