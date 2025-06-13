@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use clap::CommandFactory;
-use clap_complete::generate_to;
 use clap_complete::Shell::*;
+use clap_complete::generate_to;
 use std::fs;
 
 const BINARY_NAME: &str = env!("CARGO_PKG_NAME");
@@ -18,9 +18,12 @@ include!("src/conf/args.rs");
 const COMPLETIONS_OUT_DIR: &str = "completions/";
 
 fn main() -> Result<()> {
-    generate_completions()
-        .with_context(|| format!("Unable to generate completions and write to \
-            {COMPLETIONS_OUT_DIR}"))?;
+    generate_completions().with_context(|| {
+        format!(
+            "Unable to generate completions and write to \
+            {COMPLETIONS_OUT_DIR}"
+        )
+    })?;
 
     Ok(())
 }
@@ -31,15 +34,9 @@ pub fn generate_completions() -> Result<()> {
 
     for shell in [Bash, Fish, Zsh, Elvish, PowerShell] {
         let mut cmd = Args::command();
-        generate_to(
-            shell,
-            &mut cmd,
-            BINARY_NAME,
-            COMPLETIONS_OUT_DIR,
-        )
+        generate_to(shell, &mut cmd, BINARY_NAME, COMPLETIONS_OUT_DIR)
             .with_context(|| format!("Unable to generate completions for shell {shell}"))?;
     }
 
     Ok(())
 }
-

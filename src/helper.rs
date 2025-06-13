@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use std::collections::HashSet;
 use std::ffi::OsStr;
 use std::fmt::Debug;
@@ -19,12 +19,16 @@ pub fn check_java_executable() -> Result<()> {
         .spawn()
         .with_context(|| "Unable to start to run `java --version`")?;
 
-    if child.wait()
-            .with_context(|| "Unable to wait for `java --version`")?
-        .success() {
+    if child
+        .wait()
+        .with_context(|| "Unable to wait for `java --version`")?
+        .success()
+    {
         Ok(())
     } else {
-        Err(anyhow!("Unable to run `java --version`, java is probably not installed"))
+        Err(anyhow!(
+            "Unable to run `java --version`, java is probably not installed"
+        ))
     }
 }
 
@@ -33,7 +37,11 @@ where
     P: AsRef<Path> + Debug,
     Q: AsRef<Path>,
 {
-    debug!("Unzipping {} to {}", zip.as_ref().display(), dest.as_ref().display());
+    debug!(
+        "Unzipping {} to {}",
+        zip.as_ref().display(),
+        dest.as_ref().display()
+    );
     let src_file = OpenOptions::new()
         .read(true)
         .open(&zip)
@@ -50,9 +58,7 @@ where
         let mut file = archive.by_index(i)?;
         debug!("Processing file: {}", file.name());
 
-        let out_path = dest
-            .as_ref()
-            .join(file.enclosed_name().unwrap());
+        let out_path = dest.as_ref().join(file.enclosed_name().unwrap());
 
         debug!("Set out path: {out_path:?}");
 
@@ -77,9 +83,9 @@ where
 
             debug!("Created/opened out_file {out_file:?}");
 
-            io::copy(&mut file, &mut out_file)
-                .with_context(|| format!("Unable to io copy {src} to {out_file:?}",
-                                         src = file.name()))?;
+            io::copy(&mut file, &mut out_file).with_context(|| {
+                format!("Unable to io copy {src} to {out_file:?}", src = file.name())
+            })?;
             debug!("IO copied {src} to {out_file:?}", src = file.name());
         }
     }
@@ -95,8 +101,7 @@ where
     debug!("Adding additional submissions"); // CONSIDER Info
     for dir in sub_dir_vec {
         debug!("Processing {dir}");
-        if !fs::exists(dir)
-            .with_context(|| format!("Unable to check if {dir} exists"))? {
+        if !fs::exists(dir).with_context(|| format!("Unable to check if {dir} exists"))? {
             return Err(anyhow!("{dir} doesn't exist"));
         }
         if !PathBuf::from(dir).is_dir() {
@@ -106,12 +111,10 @@ where
         debug!("{dir} exists and is a dir, copying");
 
         let tmp_root = tmp_dir.join(&dir);
-        fs::create_dir_all(&tmp_root)
-            .with_context(|| format!("Unable to create {tmp_root:?}"))?;
+        fs::create_dir_all(&tmp_root).with_context(|| format!("Unable to create {tmp_root:?}"))?;
 
         for entry in WalkDir::new(&dir) {
-            let entry = entry
-                .with_context(|| format!("Error processing entry in {dir}"))?;
+            let entry = entry.with_context(|| format!("Error processing entry in {dir}"))?;
             let src_path = entry.path();
             let dest_path = tmp_dir.join(&src_path);
 
@@ -171,8 +174,7 @@ where
     debug!("Set to remove: {to_remove:?}");
 
     for entry in to_remove {
-        fs::remove_file(&entry)
-            .with_context(|| format!("Unable to remove {entry:?}"))?;
+        fs::remove_file(&entry).with_context(|| format!("Unable to remove {entry:?}"))?;
     }
 
     Ok(())
@@ -184,9 +186,12 @@ where
     P: AsRef<Path> + Debug,
 {
     let replacements = [
-        ('Ä', "Ae"), ('ä', "ae"),
-        ('Ö', "Oe"), ('ö', "oe"),
-        ('Ü', "Ue"), ('ü', "ue"),
+        ('Ä', "Ae"),
+        ('ä', "ae"),
+        ('Ö', "Oe"),
+        ('ö', "oe"),
+        ('Ü', "Ue"),
+        ('ü', "ue"),
         ('ß', "ss"),
     ];
 
@@ -196,24 +201,26 @@ where
         let file_path = entry.path();
 
         if file_path.is_dir()
-            || file_path.extension()
-                        .and_then(|ext| ext.to_str())
-                        .map(|ext| ext.eq_ignore_ascii_case("java"))
-            != Some(true) { continue; }
+            || file_path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| ext.eq_ignore_ascii_case("java"))
+            != Some(true)
+        {
+            continue;
+        }
 
         debug!("Checking {file_path:?} for diacritics");
 
         let content = fs::read_to_string(&file_path)
             .with_context(|| format!("Unable to read {file_path:?}"))?;
 
-        let mut sanitized_content = replacements.iter()
-                                                .fold(content.clone(), |acc, &(from, to)| {
-                                                    acc.replace(from, to)
-                                                });
+        let mut sanitized_content = replacements
+            .iter()
+            .fold(content.clone(), |acc, &(from, to)| acc.replace(from, to));
 
         if !keep_non_ascii {
-            sanitized_content = sanitized_content
-                .replace(|c: char| !c.is_ascii(), "");
+            sanitized_content = sanitized_content.replace(|c: char| !c.is_ascii(), "");
         }
 
         if sanitized_content == content {
@@ -235,8 +242,7 @@ pub fn listen_for_output(program: &mut Child) -> Result<()> {
             let reader = BufReader::new(out);
 
             for line in reader.lines() {
-                let line = line
-                    .with_context(|| "Unable to parse line from jplag")?;
+                let line = line.with_context(|| "Unable to parse line from jplag")?;
                 println!("{line}");
             }
         }
