@@ -11,7 +11,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Instant;
-use tracing::{Level, error};
+use tracing::{Level, error, instrument, span};
 use tracing::{debug, info, warn};
 use tracing_subscriber::FmtSubscriber;
 use walkdir::WalkDir;
@@ -65,7 +65,7 @@ fn main() -> Result<()> {
         &jplag_jar,
         &additional_submission_dirs,
     )
-        .with_context(|| "Initialization failed")?;
+    .with_context(|| "Initialization failed")?;
 
     prepare(&temp_dir, keep_non_ascii).with_context(|| "Preparing submissions failed")?;
 
@@ -91,6 +91,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+#[instrument]
 fn init<P, Q, R>(
     source_file: P,
     result_dir: Q,
@@ -100,7 +101,7 @@ fn init<P, Q, R>(
 ) -> Result<()>
 where
     P: AsRef<Path> + Debug + Into<String>,
-    Q: AsRef<Path>,
+    Q: AsRef<Path> + Debug,
     R: AsRef<Path> + Debug,
 {
     debug!("Checking if source zip file exist");
@@ -139,15 +140,17 @@ where
     Ok(())
 }
 
+#[instrument]
 fn prepare<P>(tmp_dir: P, keep_non_ascii: bool) -> Result<()>
 where
-    P: AsRef<Path>,
+    P: AsRef<Path> + Debug,
 {
     info!("Extracting individual submissions");
     let tmp_dir = tmp_dir.as_ref();
 
     let mut no_zip = vec![];
 
+    let mut cnt = 0u8;
     for dir in fs::read_dir(tmp_dir).with_context(|| format!("Unable to read {tmp_dir:?}"))? {
         let dir = dir.with_context(|| format!("Unable to read a dir in {tmp_dir:?}"))?;
         let student_name_dir_path = dir.path();
@@ -164,6 +167,20 @@ where
         for archive in WalkDir::new(&student_name_dir_path) {
             let archive = archive?;
             let archive_file_path = archive.path();
+
+            let span = span!(
+                Level::INFO,
+                "student_archive",
+                ?student_name_dir_path,
+                ?archive,
+                cnt
+            );
+            let _guard = span.enter();
+            debug!("Processing student");
+            cnt += 1;
+            if cnt == 3 {
+                panic!("Done")
+            };
 
             let archive_extension = archive_file_path
                 .extension()
@@ -232,6 +249,7 @@ where
     Ok(())
 }
 
+#[instrument]
 fn run(result_dir: &str, jplag_jar: &str, jplag_args: Vec<String>) -> Result<Instant> {
     let mut jplag_cmd = format!("java -jar {jplag_jar}");
 
@@ -290,6 +308,7 @@ fn run(result_dir: &str, jplag_jar: &str, jplag_args: Vec<String>) -> Result<Ins
 }
 
 #[cfg(not(debug_assertions))]
+#[instrument]
 fn cleanup<P>(tmp_dir: P) -> Result<()>
 where
     P: AsRef<Path> + Debug,
