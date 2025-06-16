@@ -3,7 +3,7 @@ mod conf;
 mod helper;
 
 use crate::conf::config::ARGS;
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context, Result, bail};
 use conf::config;
 use std::env;
 use std::fmt::Debug;
@@ -143,9 +143,7 @@ where
         debug!("Processing path {student_name_dir_path:?}");
 
         if !student_name_dir_path.is_dir() {
-            return Err(anyhow!(
-                "Everything in {tmp_dir:?} should be a dir, found {student_name_dir_path:?}"
-            ));
+            bail!("Everything in {tmp_dir:?} should be a dir, found {student_name_dir_path:?}");
         }
 
         let mut archive_file = None;
@@ -196,11 +194,11 @@ where
                 error!(first = ?file, second = ?archive_file_path, "Fuck that guy");
                 archive_file = None;
                 break;
-                return Err(anyhow!(
+                bail!(
                     "Found multiple archive files, expected one:\n\
-                \tFirst: {file:?}\n\
-                \tSecond: {archive_file_path:?}"
-                ));
+                        \tFirst: {file:?}\n\
+                        \tSecond: {archive_file_path:?}"
+                );
             }
             archive_file = Some(archive_file_path.to_owned());
         }
