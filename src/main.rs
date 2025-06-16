@@ -29,27 +29,8 @@ fn main() -> Result<()> {
         .with_context(|| "setting default subscriber failed")?;
     debug!("Default subscriber is set");
 
-    let (
-        source_file,
-        temp_dir,
-        preserve_tmp_dir,
-        result_dir,
-        keep_non_ascii,
-        jplag_jar,
-        jplag_args,
-        additional_submission_dirs,
-    ) = config::parse_args().with_context(|| "Unable to parse args")?;
-    debug!(
-        "Full config: \
-        source_file={source_file}, \
-        temp_dir={temp_dir}, \
-        preserve_tmp_dir={preserve_tmp_dir}, \
-        results_dir={result_dir}, \
-        keep_non_ascii={keep_non_ascii}, \
-        jplag_jar={jplag_jar}, \
-        jplag_args={jplag_args:?}, \
-        additional_submission_dirs={additional_submission_dirs:?}"
-    );
+    let parsed_args = config::parse_args().with_context(|| "Unable to parse args")?;
+    debug!("Full config: {parsed_args:?}");
 
     info!("Checking if java is executable");
 
@@ -59,28 +40,33 @@ fn main() -> Result<()> {
 
     info!("Initializing project");
     init(
-        &source_file,
-        &result_dir,
-        &temp_dir,
-        &jplag_jar,
-        &additional_submission_dirs,
+        &parsed_args.source_file,
+        &parsed_args.target_dir,
+        &parsed_args.tmp_dir,
+        &parsed_args.jplag_jar,
+        &parsed_args.additional_submission_dirs,
     )
     .with_context(|| "Initialization failed")?;
 
-    prepare(&temp_dir, keep_non_ascii).with_context(|| "Preparing submissions failed")?;
+    prepare(&parsed_args.tmp_dir, parsed_args.keep_non_ascii)
+        .with_context(|| "Preparing submissions failed")?;
 
-    let finished =
-        run(&result_dir, &jplag_jar, jplag_args).with_context(|| "Running jplag failed")?;
+    let finished = run(
+        &parsed_args.target_dir,
+        &parsed_args.jplag_jar,
+        &parsed_args.jplag_args,
+    )
+    .with_context(|| "Running jplag failed")?;
 
     let runtime = finished - start;
 
     #[cfg(not(debug_assertions))]
     {
-        if preserve_tmp_dir {
+        if parsed_args.preserve_tmp_dir {
             info!("Not cleaning up, goodbye! ({} ms)", runtime.as_millis());
         } else {
             info!("Cleaning up");
-            cleanup(&temp_dir).with_context(|| "Cleanup failed")?;
+            cleanup(&parsed_args.tmp_dir).with_context(|| "Cleanup failed")?;
             info!("Finished cleanup, goodbye! ({} ms)", runtime.as_millis());
         }
     }
@@ -250,10 +236,10 @@ where
 }
 
 #[instrument]
-fn run(result_dir: &str, jplag_jar: &str, jplag_args: Vec<String>) -> Result<Instant> {
+fn run(result_dir: &str, jplag_jar: &str, jplag_args: &Vec<String>) -> Result<Instant> {
     let mut jplag_cmd = format!("java -jar {jplag_jar}");
 
-    for str in &jplag_args {
+    for str in jplag_args {
         jplag_cmd.push_str(&format!(" {str}"));
     }
 
@@ -264,7 +250,7 @@ fn run(result_dir: &str, jplag_jar: &str, jplag_args: Vec<String>) -> Result<Ins
     let mut child = Command::new("java")
         .arg("-jar")
         .arg(&jplag_jar)
-        .args(&jplag_args)
+        .args(jplag_args)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
