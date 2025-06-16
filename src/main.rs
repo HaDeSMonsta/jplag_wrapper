@@ -136,7 +136,6 @@ where
 
     let mut no_zip = vec![];
 
-    let mut cnt = 0u8;
     for dir in fs::read_dir(tmp_dir).with_context(|| format!("Unable to read {tmp_dir:?}"))? {
         let dir = dir.with_context(|| format!("Unable to read a dir in {tmp_dir:?}"))?;
         let student_name_dir_path = dir.path();
@@ -157,14 +156,9 @@ where
                 "student_archive",
                 ?student_name_dir_path,
                 ?archive,
-                cnt
             );
             let _guard = span.enter();
             debug!("Processing student");
-            cnt += 1;
-            if cnt == 3 {
-                panic!("Done")
-            };
 
             let archive_extension = archive_file_path
                 .extension()
