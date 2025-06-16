@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Result, bail};
 use std::collections::HashSet;
 use std::ffi::OsStr;
 use std::fmt::Debug;
@@ -7,10 +7,11 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::{fs, io};
-use tracing::{debug, warn};
+use tracing::{debug, instrument, warn};
 use walkdir::WalkDir;
 use zip::ZipArchive;
 
+#[instrument]
 pub fn check_java_executable() -> Result<()> {
     let mut child = Command::new("java")
         .arg("--version")
@@ -26,16 +27,15 @@ pub fn check_java_executable() -> Result<()> {
     {
         Ok(())
     } else {
-        Err(anyhow!(
-            "Unable to run `java --version`, java is probably not installed"
-        ))
+        bail!("Unable to run `java --version`, java is probably not installed");
     }
 }
 
+#[instrument]
 pub fn unzip_to<P, Q>(zip: P, dest: Q) -> Result<()>
 where
     P: AsRef<Path> + Debug,
-    Q: AsRef<Path>,
+    Q: AsRef<Path> + Debug,
 {
     debug!(
         "Unzipping {} to {}",
@@ -93,6 +93,7 @@ where
     Ok(())
 }
 
+#[instrument]
 pub fn add_subs<P>(sub_dir_vec: &Vec<String>, tmp_dir: P) -> Result<()>
 where
     P: AsRef<Path> + Debug,
@@ -102,10 +103,10 @@ where
     for dir in sub_dir_vec {
         debug!("Processing {dir}");
         if !fs::exists(dir).with_context(|| format!("Unable to check if {dir} exists"))? {
-            return Err(anyhow!("{dir} doesn't exist"));
+            bail!("{dir} doesn't exist");
         }
         if !PathBuf::from(dir).is_dir() {
-            return Err(anyhow!("{dir} is not a directory"));
+            bail!("{dir} is not a directory");
         }
 
         debug!("{dir} exists and is a dir, copying");
@@ -135,6 +136,7 @@ where
 
 // NOTE The logging in here might be a little bit ambiguous (especially logging all files that aren't a match)
 /// Fuck Apple
+#[instrument]
 pub fn sanitize_submissions<P>(path: P) -> Result<()>
 where
     P: AsRef<Path> + Debug,
@@ -181,6 +183,7 @@ where
 }
 
 /// Replace diacritics and remove all non ASCII characters
+#[instrument]
 pub fn clean_non_ascii<P>(path: P, keep_non_ascii: bool) -> Result<()>
 where
     P: AsRef<Path> + Debug,
@@ -236,6 +239,7 @@ where
     Ok(())
 }
 
+#[instrument(skip_all)]
 pub fn listen_for_output(program: &mut Child) -> Result<()> {
     match program.stdout {
         Some(ref mut out) => {
