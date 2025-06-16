@@ -161,7 +161,7 @@ where
             continue;
         }
 
-        debug!("Removing MACOSX path {path:?}");
+        trace!("Removing MACOSX path {path:?}");
 
         fs::remove_dir_all(&path)
             .with_context(|| format!("Unable to remove MACOSX path {path:?}"))?;
@@ -172,12 +172,12 @@ where
     for entry in WalkDir::new(&path) {
         let entry = entry.with_context(|| format!("Invalid entry in {path:?}"))?;
         let entry_name = entry.path().to_string_lossy().to_lowercase();
-        debug!("Checking entry: {entry_name}");
+        trace!("Checking entry: {entry_name}");
 
         if entry_name.ends_with(".ds_store") {
             to_remove.insert(entry.path().to_path_buf());
         }
-        debug!("No match found")
+        trace!("No match found")
     }
 
     debug!("Set to remove: {to_remove:?}");
