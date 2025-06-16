@@ -18,6 +18,8 @@ use tracing::{debug, info, warn};
 use tracing_subscriber::FmtSubscriber;
 use walkdir::WalkDir;
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 fn main() -> Result<()> {
     let start = Instant::now();
 
@@ -30,6 +32,8 @@ fn main() -> Result<()> {
     tracing::subscriber::set_global_default(subscriber)
         .with_context(|| "setting default subscriber failed")?;
     debug!("Default subscriber is set");
+
+    info!("JPlag-rs v{}", VERSION);
 
     let parsed_args = config::parse_args().with_context(|| "Unable to parse args")?;
     debug!("Full config: {parsed_args:?}");
