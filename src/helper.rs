@@ -202,10 +202,10 @@ where
 
         if file_path.is_dir()
             || file_path
-            .extension()
-            .and_then(|ext| ext.to_str())
-            .map(|ext| ext.eq_ignore_ascii_case("java"))
-            != Some(true)
+                .extension()
+                .and_then(|ext| ext.to_str())
+                .map(|ext| ext.eq_ignore_ascii_case("java"))
+                != Some(true)
         {
             continue;
         }
