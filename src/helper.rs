@@ -7,7 +7,7 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::{fs, io};
-use tracing::{debug, instrument, warn};
+use tracing::{Level, debug, instrument, span, trace, warn};
 use walkdir::WalkDir;
 use zip::ZipArchive;
 
@@ -37,26 +37,31 @@ where
     P: AsRef<Path> + Debug,
     Q: AsRef<Path> + Debug,
 {
-    debug!(
-        "Unzipping {} to {}",
-        zip.as_ref().display(),
-        dest.as_ref().display()
-    );
+    debug!("Unzipping archive");
     let src_file = OpenOptions::new()
         .read(true)
         .open(&zip)
         .with_context(|| format!("Unable to open src_file: {zip:?}"))?;
 
-    debug!("Opened {zip:?}");
+    trace!("Opened zip");
 
     let mut archive = ZipArchive::new(BufReader::new(src_file))
         .with_context(|| format!("Unable to parse {zip:?} to a ZipArchive"))?;
 
-    debug!("Created zip archive");
+    trace!("Created zip archive");
 
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i)?;
-        debug!("Processing file: {}", file.name());
+    let archive_len = archive.len();
+    debug!("Archive len: {archive_len}");
+
+    for i in 0..archive_len {
+        let mut file = archive.by_index(i).with_context(|| {
+            format!(
+                "Unable to get file by index {i} \
+                (should be impossible, as we iterate over len, len = {archive_len})"
+            )
+        })?;
+        let span = span!(Level::DEBUG, "processing_file", file_name = %file.name());
+        let _guard = span.enter();
 
         let out_path = dest.as_ref().join(file.enclosed_name().unwrap());
 
@@ -65,13 +70,13 @@ where
         if file.is_dir() {
             fs::create_dir_all(&out_path)
                 .with_context(|| format!("Unable to create out dir: {out_path:?}"))?;
-            debug!("Created out_path");
+            trace!("Created out_path");
         } else {
             if let Some(parent) = out_path.parent() {
                 if !parent.exists() {
                     fs::create_dir_all(parent)
                         .with_context(|| format!("Unable to create parent dir: {parent:?}"))?;
-                    debug!("Created parent");
+                    trace!("Created parent");
                 }
             }
             let mut out_file = OpenOptions::new()
@@ -81,12 +86,12 @@ where
                 .open(&out_path)
                 .with_context(|| format!("Unable to open/create out_file: {out_path:?}"))?;
 
-            debug!("Created/opened out_file {out_file:?}");
+            trace!("Created/opened out_file {out_file:?}");
 
             io::copy(&mut file, &mut out_file).with_context(|| {
                 format!("Unable to io copy {src} to {out_file:?}", src = file.name())
             })?;
-            debug!("IO copied {src} to {out_file:?}", src = file.name());
+            trace!("IO copied {src} to {out_file:?}", src = file.name());
         }
     }
 
