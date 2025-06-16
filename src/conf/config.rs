@@ -28,6 +28,7 @@ static CONFIG: LazyLock<Config> = LazyLock::new(|| match parse_toml() {
 pub(crate) struct ParsedArgs {
     pub(crate) source_file: String,
     pub(crate) tmp_dir: String,
+    #[cfg(not(debug_assertions))]
     pub(crate) preserve_tmp_dir: bool,
     pub(crate) target_dir: String,
     pub(crate) keep_non_ascii: bool,
@@ -78,8 +79,10 @@ pub fn parse_args() -> Result<ParsedArgs> {
 
     debug!("Set tmp_dir to {tmp_dir}");
 
+    #[cfg(not(debug_assertions))]
     let preserve_tmp_dir = ARGS.preserve_tmp_dir();
 
+    #[cfg(not(debug_assertions))]
     debug!("Set preserve_tmp_dir to {preserve_tmp_dir}");
 
     let target_dir = ARGS.target_dir().clone().unwrap_or_else(|| {
@@ -153,6 +156,7 @@ pub fn parse_args() -> Result<ParsedArgs> {
     let parsed_args = ParsedArgs {
         source_file: source,
         tmp_dir,
+        #[cfg(not(debug_assertions))]
         preserve_tmp_dir,
         target_dir,
         keep_non_ascii,
