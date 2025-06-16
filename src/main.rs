@@ -340,7 +340,7 @@ where
 }
 
 /// Runs JPlag with the specified arguments and logs the results.
-#[instrument]
+#[instrument(level = "debug")]
 fn run(result_dir: &str, jplag_jar: &str, jplag_args: &Vec<String>) -> Result<()> {
     let mut jplag_cmd = format!("java -jar {jplag_jar}");
 
