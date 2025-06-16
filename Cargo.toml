@@ -12,7 +12,7 @@ serde = { version = "1.0.219", features = ["derive"] }
 toml = "0.8.23"
 anyhow = "1.0.98"
 walkdir = "2.5.0"
-zip = "4.0.0"
+zip = "4.1.0"
 flate2 = "1.1.2"
 tar = "0.4.44"
 sevenz-rust = "0.6.1"
@@ -20,7 +20,7 @@ unrar = "0.5.8"
 
 [build-dependencies]
 anyhow = "1.0.98"
-clap = {version = "4.5.40", features = ["derive"]}
+clap = { version = "4.5.40", features = ["derive"] }
 clap_complete = "4.5.54"
 serde = { version = "1.0.219", features = ["derive"] }
 tracing = "0.1.41"
