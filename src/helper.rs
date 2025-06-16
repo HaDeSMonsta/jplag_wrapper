@@ -20,6 +20,8 @@ pub fn check_java_executable() -> Result<()> {
         .spawn()
         .with_context(|| "Unable to start to run `java --version`")?;
 
+    trace!("Spawned child");
+
     if child
         .wait()
         .with_context(|| "Unable to wait for `java --version`")?
