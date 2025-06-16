@@ -77,7 +77,32 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-#[instrument]
+/// Initializes the file structure and prerequisite setup for the program to execute.
+///
+/// This function performs the following steps:
+/// 1. Verifies the existence of the source zip file and the JPlag JAR file.
+/// 2. Removes and recreates the result directory.
+/// 3. Removes the temporary directory, if it exists.
+/// 4. Unzips the source file into the temporary directory.
+/// 5. Adds additional submissions from specified directories to the temporary directory.
+///
+/// # Parameters
+/// - `source_file`: The path to the zip file containing the source submissions.
+/// - `result_dir`: The directory path where the results will be stored.
+/// - `tmp_dir`: The temporary directory path where the contents of the source file
+///              will be unzipped and processed.
+/// - `jplag_jar`: The path to the JPlag JAR file
+/// - `additional_submission_dirs`: A vector of directory paths containing additional
+///                                 submission files to be incorporated.
+///
+/// # Errors
+/// - Returns an error if:
+///   - The `source_file` does not exist or cannot be verified to exist.
+///   - The `jplag_jar` file does not exist or cannot be verified to exist.
+///   - The `result_dir` cannot be created.
+///   - The `tmp_dir` cannot be removed or unzipped to.
+///   - Adding additional submissions to the temporary directory fails.
+#[instrument(skip_all)]
 fn init<P, Q, R>(
     source_file: P,
     result_dir: Q,
@@ -90,25 +115,25 @@ where
     Q: AsRef<Path> + Debug,
     R: AsRef<Path> + Debug,
 {
-    debug!("Checking if source zip file exist");
+    debug!(?source_file, "Checking if source zip file exist");
     if !fs::exists(&source_file)
         .with_context(|| format!("Unable to confirm if {source_file:?} exists"))?
     {
         bail!("Unable to find source zip file {source_file:?}");
     }
 
-    debug!("Checking if jplag jar file exists");
+    debug!(?jplag_jar, "Checking if jplag jar file exists");
     if !fs::exists(&jplag_jar)
-        .with_context(|| format!("Unable to confirm if \"{jplag_jar}\" exists"))?
+        .with_context(|| format!("Unable to confirm if {jplag_jar:?} exists"))?
     {
-        bail!("Unable to find jplag jar file \"{jplag_jar}\"");
+        bail!("Unable to find jplag jar file {jplag_jar:?}");
     }
 
-    debug!("Removing result dir");
+    debug!(?result_dir, "Recreating result dir");
     let _ = fs::remove_dir_all(&result_dir);
     fs::create_dir_all(&result_dir)?;
 
-    debug!("Removing tmp dir");
+    debug!(?tmp_dir, "Removing tmp dir");
     let _ = fs::remove_dir_all(&tmp_dir);
 
     helper::unzip_to(&source_file, &tmp_dir)
