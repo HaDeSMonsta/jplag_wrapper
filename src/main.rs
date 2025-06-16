@@ -76,7 +76,9 @@ fn main() -> Result<()> {
             info!("Not cleaning up, goodbye! ({} ms)", runtime.as_millis());
         } else {
             info!("Cleaning up");
-            cleanup(&parsed_args.tmp_dir).with_context(|| "Cleanup failed")?;
+            let tmp_dir = &parsed_args.tmp_dir;
+            fs::remove_dir_all(&tmp_dir)
+                .with_context(|| format!("Removing tmp dir {tmp_dir:?} failed"))?;
             info!("Finished cleanup, goodbye! ({} ms)", runtime.as_millis());
         }
     }
@@ -333,6 +335,7 @@ where
     Ok(errs)
 }
 
+/// Runs JPlag with the specified arguments and logs the results.
 #[instrument]
 fn run(result_dir: &str, jplag_jar: &str, jplag_args: &Vec<String>) -> Result<()> {
     let mut jplag_cmd = format!("java -jar {jplag_jar}");
@@ -387,16 +390,4 @@ fn run(result_dir: &str, jplag_jar: &str, jplag_args: &Vec<String>) -> Result<()
         info!("The results are also saved in {result_file:?}");
         Ok(())
     }
-}
-
-#[cfg(not(debug_assertions))]
-#[instrument]
-fn cleanup<P>(tmp_dir: P) -> Result<()>
-where
-    P: AsRef<Path> + Debug,
-{
-    fs::remove_dir_all(&tmp_dir)
-        .with_context(|| format!("Could not cleanup tmp dir: {tmp_dir:?}"))?;
-
-    Ok(())
 }
