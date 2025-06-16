@@ -8,7 +8,7 @@ use std::io::{BufWriter, Write};
 use std::process::exit;
 use std::sync::LazyLock;
 use std::{fs, io};
-use tracing::{debug, info, warn};
+use tracing::{debug, info, instrument, warn};
 
 const DEFAULT_CONFIG_FILE: &str = "config.toml";
 const DEFAULT_SOURCE_FILE: &str = "submissions.zip";
@@ -51,6 +51,7 @@ struct Config {
 ///
 /// Returns: (source, tmp_dir, preserve_tmp_dir, target_dir, keep_non_ascii,
 /// jplag_jar, jplag_args, additional_submission_dirs)
+#[instrument]
 pub fn parse_args() -> Result<ParsedArgs> {
     debug!("Getting args");
     if ARGS.init() {
@@ -168,6 +169,7 @@ pub fn parse_args() -> Result<ParsedArgs> {
     Ok(parsed_args)
 }
 
+#[instrument]
 fn parse_toml() -> Result<Config> {
     let conf_file = ARGS
         .config()
@@ -207,6 +209,7 @@ fn parse_toml() -> Result<Config> {
     })?)
 }
 
+#[instrument]
 fn dump_default_config() -> Result<()> {
     if fs::exists(DEFAULT_CONFIG_FILE)
         .with_context(|| format!("Unable to check if \"{DEFAULT_CONFIG_FILE}\" exists"))?
