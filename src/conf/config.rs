@@ -32,6 +32,7 @@ pub(crate) struct ParsedArgs {
     pub(crate) preserve_tmp_dir: bool,
     pub(crate) target_dir: String,
     pub(crate) keep_non_ascii: bool,
+    pub(crate) abort_on_error: bool,
     pub(crate) jplag_jar: String,
     pub(crate) jplag_args: Vec<String>,
     pub(crate) additional_submission_dirs: Vec<String>,
@@ -95,10 +96,6 @@ pub fn parse_args() -> Result<ParsedArgs> {
 
     debug!("Set target dir to {target_dir}");
 
-    let keep_non_ascii = ARGS.keep_non_ascii();
-
-    debug!("Remove non ascii {keep_non_ascii}");
-
     let jplag_jar = ARGS.jplag_jar().clone().unwrap_or_else(|| {
         CONFIG
             .jplag_jar
@@ -160,7 +157,8 @@ pub fn parse_args() -> Result<ParsedArgs> {
         #[cfg(not(debug_assertions))]
         preserve_tmp_dir,
         target_dir,
-        keep_non_ascii,
+        keep_non_ascii: ARGS.keep_non_ascii(),
+        abort_on_error: ARGS.abort_on_err(),
         jplag_jar,
         jplag_args,
         additional_submission_dirs,
