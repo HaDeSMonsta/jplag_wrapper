@@ -1,6 +1,8 @@
 mod archive_handler;
 mod conf;
 mod helper;
+#[macro_use]
+mod macros;
 
 use crate::conf::config::ARGS;
 use anyhow::{Context, Result, bail};
@@ -11,7 +13,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Instant;
-use tracing::{Level, error, instrument, span};
+use tracing::{Level, instrument, span, trace};
 use tracing::{debug, info, warn};
 use tracing_subscriber::FmtSubscriber;
 use walkdir::WalkDir;
@@ -48,8 +50,12 @@ fn main() -> Result<()> {
     )
     .with_context(|| "Initialization failed")?;
 
-    prepare(&parsed_args.tmp_dir, parsed_args.keep_non_ascii)
-        .with_context(|| "Preparing submissions failed")?;
+    let errs = prepare(
+        &parsed_args.tmp_dir,
+        parsed_args.keep_non_ascii,
+        parsed_args.abort_on_error,
+    )
+    .with_context(|| "Preparing submissions failed")?;
 
     let runtime = start.elapsed();
 
@@ -59,6 +65,10 @@ fn main() -> Result<()> {
         &parsed_args.jplag_args,
     )
     .with_context(|| "Running jplag failed")?;
+
+    for err in errs {
+        warn!(%err);
+    }
 
     #[cfg(not(debug_assertions))]
     {
@@ -151,39 +161,100 @@ where
     Ok(())
 }
 
-#[instrument]
-fn prepare<P>(tmp_dir: P, keep_non_ascii: bool) -> Result<()>
+/// Prepares a given temporary directory by processing and extracting student submissions.
+///
+/// This function iterates through the provided directory, expecting each entry to represent a student's submission.
+/// It identifies, validates, and extracts archives (e.g., `.zip`, `.rar`, `.7z`, etc.) inside each student directory,
+/// applies sanitization, and optionally replaces or retains non-ASCII characters in filenames.
+/// Any errors encountered during this process are collected and returned.
+///
+/// # Returns
+/// - `Ok(Vec<anyhow::Error>)`: A vector of errors encountered during the processing, if no critical errors occurred.
+/// - `Err(anyhow::Error)`: A critical error that stops the process entirely, such as being unable to read the provided directory.
+///
+/// # Workflow
+/// The function undertakes the following operations:
+/// 1. Reads and iterates over the directories representing individual student submissions.
+/// 2. For each student directory:
+///     - Validates that the entry is a directory.
+///     - Identifies the archive file within the directory.
+///         - Archives are recognized by their file extensions (e.g., `.zip`, `.rar`, `.7z`, `.tar`, `.gz`).
+///         - Non-archive files are removed.
+///         - If multiple archived files are found, the submission is rejected, and the directory is removed.
+///         - Submissions without any archive file are also rejected.
+///     - Extracts the contents of the archive if valid.
+///         - Supports archive handling using specific functions for `.zip`, `.rar`, `.7z`, `.tar`, and `.gz` file types.
+///         - Cleans up the directory if extraction fails.
+/// 3. Sanitizes the extracted submission files:
+///     - Removes or replaces invalid/diacritic characters in filenames.
+///     - Optionally cleans non-ASCII characters based on the `keep_non_ascii` flag.
+/// 4. Logs the total errors and processes all submissions or halts early if `abort_on_err` is set to `true`.
+///
+/// # Error Handling
+/// - Errors can occur in the following scenarios:
+///     - Unable to read or access the provided `tmp_dir` directory.
+///     - Submission directories containing invalid or non-archive files.
+///     - Multiple archive files found within a directory.
+///     - Failure during archive extraction.
+///     - Failure during sanitization or non-ASCII cleaning.
+/// - All such errors are either logged or included in the returned error list (`Ok(Vec<anyhow::Error>)`).
+///
+/// # Logging
+/// - The function logs details about its operations at various levels (INFO, DEBUG, TRACE).
+/// - Examples include processing directories, detecting archive types, and detailing errors.
+///
+/// # Panics
+/// This function does not panic. All errors are captured using `anyhow::Result` and encapsulated for handling.
+///
+/// # Note
+/// - The function assumes that all valid archive files are correctly formatted and extractable.
+/// - Submission directories must only contain one valid archive file. Multiple archives are not supported.
+#[instrument(skip(keep_non_ascii, abort_on_err))]
+fn prepare<P>(tmp_dir: P, keep_non_ascii: bool, abort_on_err: bool) -> Result<Vec<anyhow::Error>>
 where
     P: AsRef<Path> + Debug,
 {
     info!("Extracting individual submissions");
     let tmp_dir = tmp_dir.as_ref();
 
-    let mut no_zip = vec![];
+    let mut errs = vec![];
 
-    for dir in fs::read_dir(tmp_dir).with_context(|| format!("Unable to read {tmp_dir:?}"))? {
+    'outer: for dir in
+        fs::read_dir(tmp_dir).with_context(|| format!("Unable to read {tmp_dir:?}"))?
+    {
         let dir = dir.with_context(|| format!("Unable to read a dir in {tmp_dir:?}"))?;
         let student_name_dir_path = dir.path();
-        debug!("Processing path {student_name_dir_path:?}");
+        let span =
+            span!(Level::INFO, "processing submissions", submission = ?student_name_dir_path);
+        let _guard = span.enter();
+        debug!("Processing student submission");
 
         if !student_name_dir_path.is_dir() {
-            bail!("Everything in {tmp_dir:?} should be a dir, found {student_name_dir_path:?}");
+            debug!("Found non dir");
+            handle_sub_err!(
+                "Everything in {tmp_dir:?} should be a dir, found {student_name_dir_path:?}",
+                fs::remove_file(&student_name_dir_path),
+                errs,
+                abort_on_err
+            );
+            continue;
         }
 
         let mut archive_file = None;
         let mut fun: fn(_, _, _) -> Result<()> = archive_handler::dummy;
         for archive in WalkDir::new(&student_name_dir_path) {
-            let archive = archive?;
+            let archive =
+                archive.with_context(|| format!("Invalid archive in {student_name_dir_path:?}"))?;
             let archive_file_path = archive.path();
 
-            let span = span!(
-                Level::INFO,
-                "student_archive",
-                ?student_name_dir_path,
-                ?archive,
-            );
+            let span = span!(Level::INFO, "student archive", ?archive_file_path);
             let _guard = span.enter();
             debug!("Processing student");
+
+            if archive.path().is_dir() {
+                trace!("Archive is dir, skipping");
+                continue;
+            }
 
             let archive_extension = archive_file_path
                 .extension()
@@ -197,49 +268,53 @@ where
                 Some(ref s) if s == "tar" => archive_handler::tar,
                 Some(ref s) if s == "gz" => archive_handler::gz, // NOTE We assume, that all files ending in `.gz` are `.tar.gz` files
                 _ => {
-                    if archive.path().is_file() {
-                        debug!("Found non archive file {archive:?}, removing");
-                        fs::remove_file(&archive_file_path).with_context(|| {
-                            format!(
-                                "Unable to remove non archive file\
+                    debug!("Found non archive file {archive:?}, removing");
+                    fs::remove_file(&archive_file_path).with_context(|| {
+                        format!(
+                            "Unable to remove non archive file\
                             {archive:?}"
-                            )
-                        })?;
-                    }
+                        )
+                    })?;
                     continue;
                 }
             };
             if let Some(file) = archive_file {
-                error!(first = ?file, second = ?archive_file_path, "Fuck that guy");
-                archive_file = None;
-                break;
-                bail!(
-                    "Found multiple archive files, expected one:\n\
+                debug!("Multiple archives found");
+                handle_sub_err!(
+                    "Found at least two archive files for student {student_name_dir_path:?}, \
+                        expected one:\n\
                         \tFirst: {file:?}\n\
-                        \tSecond: {archive_file_path:?}"
+                        \tSecond: {archive_file_path:?}",
+                    fs::remove_dir_all(&student_name_dir_path),
+                    errs,
+                    abort_on_err
                 );
+                continue 'outer;
             }
             archive_file = Some(archive_file_path.to_owned());
         }
 
         let Some(archive_file) = archive_file else {
-            no_zip.push(student_name_dir_path.to_owned());
+            debug!("No archive found");
+            handle_sub_err!(
+                "No archive for student {student_name_dir_path:?}",
+                fs::remove_dir_all(&student_name_dir_path),
+                errs,
+                abort_on_err
+            );
             continue;
         };
 
         if let Err(e) = fun(&tmp_dir, &student_name_dir_path, &archive_file) {
-            error!(?archive_file, error = ?e, "Unable to extract");
+            debug!(?e, "Error extracting {archive_file:?}");
+            handle_sub_err!(
+                "Error extracting {archive_file:?} \
+                    for {student_name_dir_path:?}: {e:?}",
+                fs::remove_file(&student_name_dir_path),
+                errs,
+                abort_on_err
+            );
         }
-    }
-
-    for no_zip_student in no_zip {
-        warn!("No zip file found in {no_zip_student:?}, removing path");
-        fs::remove_dir_all(&no_zip_student).with_context(|| {
-            format!(
-                "Unable to remove path of student who didn't \
-            hand in an assignment: {no_zip_student:?}"
-            )
-        })?;
     }
 
     info!("Unzipped all submissions, Sanitizing output files");
@@ -249,7 +324,13 @@ where
     helper::clean_non_ascii(&tmp_dir, keep_non_ascii)
         .with_context(|| "Unable to replace diacritics")?;
 
-    Ok(())
+    match errs.len() {
+        0 => {}
+        1 => warn!("There was 1 error"),
+        n => warn!("There were {n} errors"),
+    }
+
+    Ok(errs)
 }
 
 #[instrument]

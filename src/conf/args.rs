@@ -34,6 +34,11 @@ pub struct Args {
     /// Set this flag to keep them
     #[clap(long)]
     keep_non_ascii: bool,
+    /// Set to abort on any extraction related error
+    ///
+    /// Default is to continue and display errors after viewing jplag output
+    #[clap(long)]
+    abort_on_err: bool,
     /// Specify the config toml file to look for
     /// if you don't want to use the default config.toml
     ///
@@ -123,6 +128,10 @@ impl Args {
 
     pub fn keep_non_ascii(&self) -> bool {
         self.keep_non_ascii
+    }
+
+    pub fn abort_on_err(&self) -> bool {
+        self.abort_on_err
     }
 
     pub fn config(&self) -> &Option<String> {
