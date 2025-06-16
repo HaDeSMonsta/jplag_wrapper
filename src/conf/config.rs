@@ -21,8 +21,20 @@ const DEFAULT_JAVA_VERSION: &str = "java";
 pub static ARGS: LazyLock<Args> = LazyLock::new(|| Args::parse());
 static CONFIG: LazyLock<Config> = LazyLock::new(|| match parse_toml() {
     Ok(c) => c,
-    Err(e) => panic!("Unable to parse config: {e}"),
+    Err(e) => panic!("Unable to parse config: {e:?}"),
 });
+
+#[derive(Debug)]
+pub(crate) struct ParsedArgs {
+    pub(crate) source_file: String,
+    pub(crate) tmp_dir: String,
+    pub(crate) preserve_tmp_dir: bool,
+    pub(crate) target_dir: String,
+    pub(crate) keep_non_ascii: bool,
+    pub(crate) jplag_jar: String,
+    pub(crate) jplag_args: Vec<String>,
+    pub(crate) additional_submission_dirs: Vec<String>,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Config {
@@ -38,16 +50,7 @@ struct Config {
 ///
 /// Returns: (source, tmp_dir, preserve_tmp_dir, target_dir, keep_non_ascii,
 /// jplag_jar, jplag_args, additional_submission_dirs)
-pub fn parse_args() -> Result<(
-    String,
-    String,
-    bool,
-    String,
-    bool,
-    String,
-    Vec<String>,
-    Vec<String>,
-)> {
+pub fn parse_args() -> Result<ParsedArgs> {
     debug!("Getting args");
     if ARGS.init() {
         debug!("Initializing config");
@@ -147,8 +150,8 @@ pub fn parse_args() -> Result<(
 
     info!("Successfully parsed config");
 
-    Ok((
-        source,
+    let parsed_args = ParsedArgs {
+        source_file: source,
         tmp_dir,
         preserve_tmp_dir,
         target_dir,
@@ -156,7 +159,9 @@ pub fn parse_args() -> Result<(
         jplag_jar,
         jplag_args,
         additional_submission_dirs,
-    ))
+    };
+
+    Ok(parsed_args)
 }
 
 fn parse_toml() -> Result<Config> {
