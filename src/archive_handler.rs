@@ -151,13 +151,13 @@ where
         File::open(&archive_file_path)
             .with_context(|| format!("Unable to open tar {archive_file_path:?}"))?,
     ))
-        .unpack(&student_name_dir_path)
-        .with_context(|| {
-            format!(
-                "Unable to untar {archive_file_path:?} \
+    .unpack(&student_name_dir_path)
+    .with_context(|| {
+        format!(
+            "Unable to untar {archive_file_path:?} \
         into {student_name_dir_path:?}"
-            )
-        })?;
+        )
+    })?;
 
     debug!("Successfully untared, removing source");
 
@@ -189,13 +189,13 @@ where
             )
         })?,
     )))
-        .unpack(&student_name_dir_path)
-        .with_context(|| {
-            format!(
-                "Unable to extract {archive_file_path:?} \
+    .unpack(&student_name_dir_path)
+    .with_context(|| {
+        format!(
+            "Unable to extract {archive_file_path:?} \
         to {student_name_dir_path:?}"
         )
-        })?;
+    })?;
 
     debug!("Successfully ungzipped, removing source");
 
