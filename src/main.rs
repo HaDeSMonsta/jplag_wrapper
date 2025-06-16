@@ -51,14 +51,14 @@ fn main() -> Result<()> {
     prepare(&parsed_args.tmp_dir, parsed_args.keep_non_ascii)
         .with_context(|| "Preparing submissions failed")?;
 
-    let finished = run(
+    let runtime = start.elapsed();
+
+    run(
         &parsed_args.target_dir,
         &parsed_args.jplag_jar,
         &parsed_args.jplag_args,
     )
     .with_context(|| "Running jplag failed")?;
-
-    let runtime = finished - start;
 
     #[cfg(not(debug_assertions))]
     {
@@ -253,7 +253,7 @@ where
 }
 
 #[instrument]
-fn run(result_dir: &str, jplag_jar: &str, jplag_args: &Vec<String>) -> Result<Instant> {
+fn run(result_dir: &str, jplag_jar: &str, jplag_args: &Vec<String>) -> Result<()> {
     let mut jplag_cmd = format!("java -jar {jplag_jar}");
 
     for str in jplag_args {
@@ -261,8 +261,6 @@ fn run(result_dir: &str, jplag_jar: &str, jplag_args: &Vec<String>) -> Result<In
     }
 
     info!(cmd = jplag_cmd, "Starting jplag");
-
-    let jplag_start_ts = Instant::now();
 
     let mut child = Command::new("java")
         .arg("-jar")
@@ -306,7 +304,7 @@ fn run(result_dir: &str, jplag_jar: &str, jplag_args: &Vec<String>) -> Result<In
         }
 
         info!("The results are also saved in {result_file:?}");
-        Ok(jplag_start_ts)
+        Ok(())
     }
 }
 
