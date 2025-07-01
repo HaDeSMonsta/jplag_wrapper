@@ -154,7 +154,7 @@ where
     debug!("Removing MACOSX paths");
 
     for entry in WalkDir::new(&path) {
-        let entry = entry.with_context(|| format!("Invalid entry in {path:?}"))?;
+        let entry = entry.with_context(|| format!("[MACOSX]: Invalid entry in {path:?}"))?;
         let path = entry.path();
 
         if !path.is_dir() || path.file_name() != Some(OsStr::new("__MACOSX")) {
@@ -170,7 +170,7 @@ where
     debug!("Removed MACOSX paths, now searching for .DS_Store");
 
     for entry in WalkDir::new(&path) {
-        let entry = entry.with_context(|| format!("Invalid entry in {path:?}"))?;
+        let entry = entry.with_context(|| format!("[DS_Store]: Invalid entry in {path:?}"))?;
         let entry_name = entry.path().to_string_lossy().to_lowercase();
         trace!("Checking entry: {entry_name}");
 
@@ -183,7 +183,29 @@ where
     debug!("Set to remove: {to_remove:?}");
 
     for entry in to_remove {
+        // NOTE Why extra vec and loop?
         fs::remove_file(&entry).with_context(|| format!("Unable to remove {entry:?}"))?;
+    }
+
+    debug!("Removing build dirs");
+
+    for entry in WalkDir::new(&path) {
+        let entry = entry.with_context(|| format!("[Build]: Invalid entry in {path:?}"))?;
+        let path = entry.path();
+        let span = span!(Level::DEBUG, "build dir removal", ?path);
+        let _guard = span.enter();
+        trace!("Checking entry");
+
+        if !path.is_dir()
+            || !(path.file_name() == Some(OsStr::new("build"))
+                || path.file_name() == Some(OsStr::new("target")))
+        {
+            continue;
+        }
+
+        debug!("Found build dir, removing");
+
+        let _ = fs::remove_dir_all(&path);
     }
 
     Ok(())
