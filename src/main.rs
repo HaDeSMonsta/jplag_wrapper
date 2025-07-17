@@ -13,7 +13,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Instant;
-use tracing::{Level, instrument, span, trace};
+use tracing::{Level, debug_span, instrument, span, trace};
 use tracing::{debug, info, warn};
 use tracing_subscriber::FmtSubscriber;
 use walkdir::WalkDir;
@@ -340,7 +340,7 @@ where
 }
 
 /// Runs JPlag with the specified arguments and logs the results.
-#[instrument(level = "debug")]
+#[instrument(skip(jplag_jar, jplag_args))]
 fn run(result_dir: &str, jplag_jar: &str, jplag_args: &Vec<String>) -> Result<()> {
     let mut jplag_cmd = format!("java -jar {jplag_jar}");
 
@@ -349,6 +349,8 @@ fn run(result_dir: &str, jplag_jar: &str, jplag_args: &Vec<String>) -> Result<()
     }
 
     info!(cmd = jplag_cmd, "Starting jplag");
+    let span = debug_span!("execute", cmd = jplag_cmd);
+    let _guard = span.enter();
 
     let mut child = Command::new("java")
         .arg("-jar")
