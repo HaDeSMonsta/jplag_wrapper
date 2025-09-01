@@ -1,7 +1,8 @@
-use anyhow::{Context, Result};
 use clap::CommandFactory;
 use clap_complete::Shell::*;
 use clap_complete::generate_to;
+use color_eyre::Result;
+use color_eyre::eyre::Context;
 use std::fs;
 
 const BINARY_NAME: &str = env!("CARGO_PKG_NAME");

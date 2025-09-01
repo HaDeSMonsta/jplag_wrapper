@@ -1,5 +1,8 @@
 use crate::helper;
-use anyhow::{Context, Result, bail};
+use color_eyre::{
+    Result,
+    eyre::{Context, ContextCompat, bail},
+};
 use flate2::read::GzDecoder;
 use std::fmt::Debug;
 use std::fs;

@@ -1,4 +1,5 @@
-use anyhow::{Context, Result, bail};
+use color_eyre::Result;
+use color_eyre::eyre::{Context, bail};
 use std::collections::HashSet;
 use std::ffi::OsStr;
 use std::fmt::Debug;

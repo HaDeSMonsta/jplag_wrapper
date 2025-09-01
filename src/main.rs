@@ -5,7 +5,8 @@ mod helper;
 mod macros;
 
 use crate::conf::config::ARGS;
-use anyhow::{Context, Result, bail};
+use color_eyre::Result;
+use color_eyre::eyre::{Context, bail};
 use conf::config;
 use std::env;
 use std::fmt::Debug;
@@ -216,7 +217,11 @@ where
 /// - The function assumes that all valid archive files are correctly formatted and extractable.
 /// - Submission directories must only contain one valid archive file. Multiple archives are not supported.
 #[instrument(skip(keep_non_ascii, abort_on_err))]
-fn prepare<P>(tmp_dir: P, keep_non_ascii: bool, abort_on_err: bool) -> Result<Vec<anyhow::Error>>
+fn prepare<P>(
+    tmp_dir: P,
+    keep_non_ascii: bool,
+    abort_on_err: bool,
+) -> Result<Vec<color_eyre::eyre::Error>>
 where
     P: AsRef<Path> + Debug,
 {

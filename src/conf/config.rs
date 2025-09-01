@@ -1,6 +1,7 @@
 use crate::conf::args::Args;
-use anyhow::{Context, Result, bail};
 use clap::Parser;
+use color_eyre::Result;
+use color_eyre::eyre::{Context, bail};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::fs::OpenOptions;
