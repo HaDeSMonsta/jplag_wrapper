@@ -32,18 +32,18 @@ fn main() -> Result<()> {
 
         let subscriber = FmtSubscriber::builder().with_max_level(log_level).finish();
         tracing::subscriber::set_global_default(subscriber)
-            .with_context(|| "setting default subscriber failed")?;
+            .context("setting default subscriber failed")?;
     }
     debug!("Default subscriber is set");
 
-    info!("JPlag-rs v{}", VERSION);
+    info!("JPlag-rs v{VERSION}");
 
-    let parsed_args = config::parse_args().with_context(|| "Unable to parse args")?;
-    debug!("Full config: {parsed_args:?}");
+    let parsed_args = config::parse_args().context("Unable to parse args")?;
+    debug!(?parsed_args);
 
     info!("Checking if java is executable");
 
-    helper::check_java_executable().with_context(|| "Check if java is executable failed")?;
+    helper::check_java_executable().context("Check if java is executable failed")?;
 
     info!("Check successful");
 
@@ -55,14 +55,14 @@ fn main() -> Result<()> {
         &parsed_args.jplag_jar,
         &parsed_args.additional_submission_dirs,
     )
-    .with_context(|| "Initialization failed")?;
+    .context("Initialization failed")?;
 
     let errs = prepare(
         &parsed_args.tmp_dir,
         parsed_args.keep_non_ascii,
         parsed_args.abort_on_error,
     )
-    .with_context(|| "Preparing submissions failed")?;
+    .context("Preparing submissions failed")?;
 
     let runtime = start.elapsed();
 
@@ -71,7 +71,7 @@ fn main() -> Result<()> {
         &parsed_args.jplag_jar,
         &parsed_args.jplag_args,
     )
-    .with_context(|| "Running jplag failed")?;
+    .context("Running jplag failed")?;
 
     for err in errs {
         warn!(%err);
@@ -178,8 +178,8 @@ where
 /// Any errors encountered during this process are collected and returned.
 ///
 /// # Returns
-/// - `Ok(Vec<anyhow::Error>)`: A vector of errors encountered during the processing, if no critical errors occurred.
-/// - `Err(anyhow::Error)`: A critical error that stops the process entirely, such as being unable to read the provided directory.
+/// - `Ok(Vec<color_eyre::eyre::Error>)`: A vector of errors encountered during the processing, if no critical errors occurred.
+/// - `Err(color_eyre::eyre::Error)`: A critical error that stops the process entirely, such as being unable to read the provided directory.
 ///
 /// # Workflow
 /// The function undertakes the following operations:
@@ -206,14 +206,14 @@ where
 ///     - Multiple archive files found within a directory.
 ///     - Failure during archive extraction.
 ///     - Failure during sanitization or non-ASCII cleaning.
-/// - All such errors are either logged or included in the returned error list (`Ok(Vec<anyhow::Error>)`).
+/// - All such errors are either logged or included in the returned error list (`Ok(Vec<color_eyre::eyre::Error>)`).
 ///
 /// # Logging
 /// - The function logs details about its operations at various levels (INFO, DEBUG, TRACE).
 /// - Examples include processing directories, detecting archive types, and detailing errors.
 ///
 /// # Panics
-/// This function does not panic. All errors are captured using `anyhow::Result` and encapsulated for handling.
+/// This function does not panic. All errors are captured using `color_eyre::eyre::Result` and encapsulated for handling.
 ///
 /// # Note
 /// - The function assumes that all valid archive files are correctly formatted and extractable.
@@ -363,6 +363,7 @@ fn run(result_dir: &str, jplag_jar: &str, jplag_args: &Vec<String>) -> Result<()
         .arg("-jar")
         .arg(&jplag_jar)
         .args(jplag_args)
+        .stdin(Stdio::inherit())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
@@ -375,7 +376,7 @@ fn run(result_dir: &str, jplag_jar: &str, jplag_args: &Vec<String>) -> Result<()
 
     let status = child
         .wait()
-        .with_context(|| format!("Unable to wait for child process {jplag_cmd}"))?;
+        .with_context(|| format!("Unable to wait for child process {jplag_cmd:?}"))?;
 
     if !status.success() {
         warn!("Command failed, {status}");
@@ -384,7 +385,7 @@ fn run(result_dir: &str, jplag_jar: &str, jplag_args: &Vec<String>) -> Result<()
         bail!("Java jplag command failed, {status}");
     } else {
         debug!("{status}");
-        let current_dir = env::current_dir().with_context(|| "Unable to get current dir")?;
+        let current_dir = env::current_dir().context("Unable to get current dir")?;
         let result_dir = current_dir.join(result_dir);
 
         let mut result_file = PathBuf::from(format!(
