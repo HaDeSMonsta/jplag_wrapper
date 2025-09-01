@@ -24,14 +24,16 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 fn main() -> Result<()> {
     let start = Instant::now();
 
-    let log_level = ARGS
-        .log_level()
-        .parse::<Level>()
-        .context("Unable to parse log level")?;
+    {
+        let log_level = ARGS
+            .log_level()
+            .parse::<Level>()
+            .context("Unable to parse log level")?;
 
-    let subscriber = FmtSubscriber::builder().with_max_level(log_level).finish();
-    tracing::subscriber::set_global_default(subscriber)
-        .with_context(|| "setting default subscriber failed")?;
+        let subscriber = FmtSubscriber::builder().with_max_level(log_level).finish();
+        tracing::subscriber::set_global_default(subscriber)
+            .with_context(|| "setting default subscriber failed")?;
+    }
     debug!("Default subscriber is set");
 
     info!("JPlag-rs v{}", VERSION);
