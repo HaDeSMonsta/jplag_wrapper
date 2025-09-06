@@ -1,14 +1,12 @@
 use color_eyre::Result;
 use color_eyre::eyre::{Context, bail};
-use std::collections::HashSet;
-use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::{fs, io};
-use tracing::{Level, debug, instrument, span, trace, warn};
+use tracing::{Level, debug, info_span, instrument, span, trace, warn};
 use walkdir::WalkDir;
 use zip::ZipArchive;
 
@@ -151,65 +149,46 @@ pub fn sanitize_submissions<P>(path: P) -> Result<()>
 where
     P: AsRef<Path> + Debug,
 {
-    let path = path.as_ref();
-    let mut to_remove = HashSet::new();
+    const TO_REM_DIRS: &[&str] = &["__MACOSX", ".idea", "target", "build", "gradle", ".git"];
+    const TO_REM_FILES: &[&str] = &[
+        ".DS_STORE",
+        ".gitignore",
+        "gradlew",
+        "gradlew.bat",
+        "build.gradle.kts",
+        "settings.gradle.kts",
+        "pom.xml",
+        ".md",
+        ".iml",
+    ];
 
-    debug!("Removing MACOSX paths");
+    debug!("Removing files");
 
-    for entry in WalkDir::new(&path) {
-        let entry = entry.with_context(|| format!("[MACOSX]: Invalid entry in {path:?}"))?;
+    'outer: for entry in WalkDir::new(&path) {
+        let entry = entry.with_context(|| format!("Invalid entry in {path:?}"))?;
         let path = entry.path();
-
-        if !path.is_dir() || path.file_name() != Some(OsStr::new("__MACOSX")) {
-            continue;
+        let is_dir = path.is_dir();
+        let span = info_span!("Checking file", ?path, is_dir);
+        let _enter = span.enter();
+        if is_dir {
+            for dir in TO_REM_DIRS {
+                if path.ends_with(dir) {
+                    trace!("Found match to remove");
+                    fs::remove_dir_all(path)
+                        .with_context(|| format!("Unable to remove {path:?}"))?;
+                    continue 'outer;
+                }
+            }
+        } else {
+            for file in TO_REM_FILES {
+                if path.ends_with(file) {
+                    trace!("Found match to remove");
+                    fs::remove_file(path).with_context(|| format!("Unable to remove {path:?}"))?;
+                    continue 'outer;
+                }
+            }
         }
-
-        trace!("Removing MACOSX path {path:?}");
-
-        fs::remove_dir_all(&path)
-            .with_context(|| format!("Unable to remove MACOSX path {path:?}"))?;
-    }
-
-    debug!("Removed MACOSX paths, now searching for .DS_Store");
-
-    for entry in WalkDir::new(&path) {
-        let entry = entry.with_context(|| format!("[DS_Store]: Invalid entry in {path:?}"))?;
-        let entry_name = entry.path().to_string_lossy().to_lowercase();
-        trace!("Checking entry: {entry_name}");
-
-        if entry_name.ends_with(".ds_store") {
-            to_remove.insert(entry.path().to_path_buf());
-        }
-        trace!("No match found")
-    }
-
-    #[cfg(debug_assertions)]
-    debug!("Set to remove: {to_remove:?}");
-
-    for entry in to_remove {
-        // NOTE Why extra vec and loop?
-        fs::remove_file(&entry).with_context(|| format!("Unable to remove {entry:?}"))?;
-    }
-
-    debug!("Removing build dirs");
-
-    for entry in WalkDir::new(&path) {
-        let entry = entry.with_context(|| format!("[Build]: Invalid entry in {path:?}"))?;
-        let path = entry.path();
-        let span = span!(Level::DEBUG, "build dir removal", ?path);
-        let _guard = span.enter();
-        trace!("Checking entry");
-
-        if !path.is_dir()
-            || !(path.file_name() == Some(OsStr::new("build"))
-                || path.file_name() == Some(OsStr::new("target")))
-        {
-            continue;
-        }
-
-        trace!("Found build dir, removing");
-
-        let _ = fs::remove_dir_all(&path);
+        trace!("No match found");
     }
 
     Ok(())
