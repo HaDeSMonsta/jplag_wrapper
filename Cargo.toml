@@ -15,6 +15,9 @@ codegen-units = 1
 panic = "abort"
 strip = true
 
+[features]
+minimal_rms = []
+
 [workspace.dependencies]
 clap = { version = "4.5.47", features = ["derive"] }
 clap_complete = "4.5.57"

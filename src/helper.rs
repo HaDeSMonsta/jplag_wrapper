@@ -149,7 +149,13 @@ pub fn sanitize_submissions<P>(path: P) -> Result<()>
 where
     P: AsRef<Path> + Debug,
 {
+    #[cfg(feature = "minimal_rms")]
+    const TO_REM_DIRS: &[&str] = &["__MACOSX", "target", "build"];
+    #[cfg(feature = "minimal_rms")]
+    const TO_REM_FILES: &[&str] = &[".DS_STORE"];
+    #[cfg(not(feature = "minimal_rms"))]
     const TO_REM_DIRS: &[&str] = &["__MACOSX", ".idea", "target", "build", "gradle", ".git"];
+    #[cfg(not(feature = "minimal_rms"))]
     const TO_REM_FILES: &[&str] = &[
         ".DS_STORE",
         ".gitignore",
