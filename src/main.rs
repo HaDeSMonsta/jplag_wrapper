@@ -22,6 +22,7 @@ use walkdir::WalkDir;
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() -> Result<()> {
+    color_eyre::install().context("Failed to install :(")?;
     let start = Instant::now();
 
     {
