@@ -1,12 +1,13 @@
 use crate::helper;
 use color_eyre::{
     Result,
-    eyre::{Context, ContextCompat, bail},
+    eyre::{Context, ContextCompat},
 };
 use flate2::read::GzDecoder;
 use std::fmt::Debug;
 use std::fs;
 use std::fs::File;
+use std::hint::unreachable_unchecked;
 use std::io::BufReader;
 use std::path::Path;
 use tracing::{debug, instrument};
@@ -215,5 +216,7 @@ where
     Q: AsRef<Path> + Debug,
     R: AsRef<Path> + Debug,
 {
-    bail!("Called dummy extract function => `fun` was not initialized")
+    unsafe {
+        unreachable_unchecked();
+    }
 }
