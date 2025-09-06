@@ -16,7 +16,8 @@ use tracing::{debug, instrument};
 // archive file path: tmp/name/archive
 // zip dir name: name/
 
-#[instrument]
+// Both are set in a span before calling one of these functions
+#[instrument(skip(tmp_dir, student_name_dir_path))]
 pub fn zip<P, Q, R>(tmp_dir: P, student_name_dir_path: Q, archive_file_path: R) -> Result<()>
 where
     P: AsRef<Path> + Debug,
@@ -29,16 +30,13 @@ where
 
     let zip_dir_name = student_name_dir_path
         .file_name()
-        .and_then(|f| f.to_str())
         .with_context(|| format!("Unable to get file name of {:?}", student_name_dir_path))?;
 
-    // let zip_target_dir = format!("{zip_dir_name}/out");
-    let zip_target_dir = zip_dir_name;
-    let dest = tmp_dir.join(&zip_target_dir);
+    let dest = tmp_dir.join(&zip_dir_name);
 
     debug!("Set destination of unzipped file to {dest:?}");
 
-    fs::create_dir_all(&dest).with_context(|| format!("Unable to create {tmp_dir:?}"))?;
+    fs::create_dir_all(&dest).with_context(|| format!("Unable to create {dest:?}"))?;
 
     debug!("Created {dest:?}");
 
@@ -55,7 +53,7 @@ where
     Ok(())
 }
 
-#[instrument]
+#[instrument(skip(tmp_dir, student_name_dir_path))]
 pub fn rar<P, Q, R>(tmp_dir: P, student_name_dir_path: Q, archive_file_path: R) -> Result<()>
 where
     P: AsRef<Path> + Debug,
@@ -113,7 +111,7 @@ where
     Ok(())
 }
 
-#[instrument(skip(_tmp_dir))]
+#[instrument(skip(_tmp_dir, student_name_dir_path))]
 pub fn sz<P, Q, R>(_tmp_dir: P, student_name_dir_path: Q, archive_file_path: R) -> Result<()>
 where
     P: AsRef<Path> + Debug,
@@ -138,7 +136,7 @@ where
     Ok(())
 }
 
-#[instrument(skip(_tmp_dir))]
+#[instrument(skip(_tmp_dir, student_name_dir_path))]
 pub fn tar<P, Q, R>(_tmp_dir: P, student_name_dir_path: Q, archive_file_path: R) -> Result<()>
 where
     P: AsRef<Path> + Debug,
@@ -172,7 +170,7 @@ where
     Ok(())
 }
 
-#[instrument(skip(_tmp_dir))]
+#[instrument(skip(_tmp_dir, student_name_dir_path))]
 pub fn gz<P, Q, R>(_tmp_dir: P, student_name_dir_path: Q, archive_file_path: R) -> Result<()>
 where
     P: AsRef<Path> + Debug,
