@@ -14,23 +14,26 @@ use zip::ZipArchive;
 
 #[instrument]
 pub fn check_java_executable() -> Result<()> {
-    let mut child = Command::new("java")
-        .arg("--version")
+    const CMD: &str = "java";
+    const ARG: &str = "--version";
+
+    let mut child = Command::new(CMD)
+        .arg(ARG)
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
-        .with_context(|| "Unable to start to run `java --version`")?;
+        .with_context(|| format!("Unable to start to run `{CMD} {ARG}`"))?;
 
     trace!("Spawned child");
 
     if child
         .wait()
-        .with_context(|| "Unable to wait for `java --version`")?
+        .with_context(|| format!("Unable to wait for`{CMD} {ARG}`"))?
         .success()
     {
         Ok(())
     } else {
-        bail!("Unable to run `java --version`, java is probably not installed");
+        bail!("Unable to run `{CMD} {ARG}`, {CMD} is probably not installed");
     }
 }
 
@@ -40,7 +43,7 @@ where
     P: AsRef<Path> + Debug,
     Q: AsRef<Path> + Debug,
 {
-    debug!("Unzipping archive");
+    trace!("Unzipping archive");
     let src_file = OpenOptions::new()
         .read(true)
         .open(&zip)
@@ -54,7 +57,7 @@ where
     trace!("Created zip archive");
 
     let archive_len = archive.len();
-    debug!("Archive len: {archive_len}");
+    trace!("Archive len: {archive_len}");
 
     for i in 0..archive_len {
         let mut file = archive.by_index(i).with_context(|| {
@@ -68,7 +71,7 @@ where
 
         let out_path = dest.as_ref().join(file.enclosed_name().unwrap());
 
-        debug!("Set out path: {out_path:?}");
+        trace!("Set out path: {out_path:?}");
 
         if file.is_dir() {
             fs::create_dir_all(&out_path)
@@ -109,7 +112,7 @@ where
     let tmp_dir = tmp_dir.as_ref();
     debug!("Adding additional submissions"); // CONSIDER Info
     for dir in sub_dir_vec {
-        debug!("Processing {dir}");
+        trace!("Processing {dir}");
         if !fs::exists(dir).with_context(|| format!("Unable to check if {dir} exists"))? {
             bail!("{dir} doesn't exist");
         }
@@ -117,7 +120,7 @@ where
             bail!("{dir} is not a directory");
         }
 
-        debug!("{dir} exists and is a dir, copying");
+        trace!("{dir} exists and is a dir, copying");
 
         let tmp_root = tmp_dir.join(&dir);
         fs::create_dir_all(&tmp_root).with_context(|| format!("Unable to create {tmp_root:?}"))?;
@@ -127,7 +130,7 @@ where
             let src_path = entry.path();
             let dest_path = tmp_dir.join(&src_path);
 
-            debug!("Copying {src_path:?} to {dest_path:?}");
+            trace!("Copying {src_path:?} to {dest_path:?}");
 
             if src_path.is_dir() {
                 fs::create_dir_all(&dest_path)
@@ -142,9 +145,8 @@ where
     Ok(())
 }
 
-// NOTE The logging in here might be a little bit ambiguous (especially logging all files that aren't a match)
 /// Fuck Apple
-#[instrument]
+#[instrument(skip_all)]
 pub fn sanitize_submissions<P>(path: P) -> Result<()>
 where
     P: AsRef<Path> + Debug,
@@ -181,6 +183,7 @@ where
         trace!("No match found")
     }
 
+    #[cfg(debug_assertions)]
     debug!("Set to remove: {to_remove:?}");
 
     for entry in to_remove {
@@ -204,7 +207,7 @@ where
             continue;
         }
 
-        debug!("Found build dir, removing");
+        trace!("Found build dir, removing");
 
         let _ = fs::remove_dir_all(&path);
     }
@@ -212,13 +215,13 @@ where
     Ok(())
 }
 
-/// Replace diacritics and remove all non ASCII characters
+/// Replace diacritics and remove all non-ASCII characters
 #[instrument]
 pub fn clean_non_ascii<P>(path: P, keep_non_ascii: bool) -> Result<()>
 where
     P: AsRef<Path> + Debug,
 {
-    let replacements = [
+    const REPLACEMENTS: &[(char, &str)] = &[
         ('Ä', "Ae"),
         ('ä', "ae"),
         ('Ö', "Oe"),
@@ -243,12 +246,12 @@ where
             continue;
         }
 
-        debug!("Checking {file_path:?} for diacritics");
+        trace!("Checking {file_path:?} for diacritics");
 
         let content = fs::read_to_string(&file_path)
             .with_context(|| format!("Unable to read {file_path:?}"))?;
 
-        let mut sanitized_content = replacements
+        let mut sanitized_content = REPLACEMENTS
             .iter()
             .fold(content.clone(), |acc, &(from, to)| acc.replace(from, to));
 
@@ -261,7 +264,7 @@ where
             continue;
         }
 
-        debug!("{file_path:?} did contained diacritics, replacing content");
+        trace!("{file_path:?} did contained diacritics, replacing content");
         fs::write(&file_path, sanitized_content)
             .with_context(|| format!("Unable to write to file {file_path:?}"))?
     }

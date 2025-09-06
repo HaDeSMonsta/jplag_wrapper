@@ -101,7 +101,7 @@ fn main() -> Result<()> {
 /// This function performs the following steps:
 /// 1. Verifies the existence of the source zip file and the JPlag JAR file.
 /// 2. Removes and recreates the result directory.
-/// 3. Removes the temporary directory, if it exists.
+/// 3. Removes the temporary directory if it exists.
 /// 4. Unzips the source file into the temporary directory.
 /// 5. Adds additional submissions from specified directories to the temporary directory.
 ///
@@ -155,13 +155,14 @@ where
     debug!(?tmp_dir, "Removing tmp dir");
     let _ = fs::remove_dir_all(&tmp_dir);
 
+    debug!("Unzipping {source_file:?} to {tmp_dir:?}");
     helper::unzip_to(&source_file, &tmp_dir)
         .with_context(|| format!("Unable to extract {source_file:?} to {tmp_dir:?}"))?;
 
     helper::add_subs(&additional_submission_dirs, &tmp_dir).with_context(|| {
         format!(
             "Unable to copy additional submissions \
-        {additional_submission_dirs:?} to {tmp_dir:?}"
+            {additional_submission_dirs:?} to {tmp_dir:?}"
         )
     })?;
 
@@ -243,7 +244,7 @@ where
         debug!("Processing student submission");
 
         if !student_name_dir_path.is_dir() {
-            debug!("Found non dir");
+            trace!("Found non dir");
             handle_sub_err!(
                 "Everything in {tmp_dir:?} should be a dir, found {student_name_dir_path:?}",
                 fs::remove_file(&student_name_dir_path),
@@ -262,7 +263,7 @@ where
 
             let span = span!(Level::INFO, "student archive", ?archive_file_path);
             let _guard = span.enter();
-            debug!("Processing student");
+            trace!("Processing file for student");
 
             if archive.path().is_dir() {
                 trace!("Archive is dir, skipping");
@@ -281,10 +282,10 @@ where
                 Some(ref s) if s == "tar" => archive_handler::tar,
                 Some(ref s) if s == "gz" => archive_handler::gz, // NOTE We assume, that all files ending in `.gz` are `.tar.gz` files
                 _ => {
-                    debug!("Found non archive file {archive:?}, removing");
+                    trace!("Found non archive file {archive:?}, removing");
                     fs::remove_file(&archive_file_path).with_context(|| {
                         format!(
-                            "Unable to remove non archive file\
+                            "Unable to remove non archive file \
                             {archive:?}"
                         )
                     })?;
