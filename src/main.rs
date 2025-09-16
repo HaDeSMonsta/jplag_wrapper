@@ -6,14 +6,14 @@ mod macros;
 
 use crate::conf::config::ARGS;
 use color_eyre::Result;
-use color_eyre::eyre::{Context, bail};
+use color_eyre::eyre::{Context, anyhow, bail};
 use conf::config;
-use std::env;
 use std::fmt::Debug;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Instant;
+use std::{env, thread};
 use tracing::{Level, debug_span, instrument, span, trace};
 use tracing::{debug, info, warn};
 use tracing_subscriber::FmtSubscriber;
@@ -233,6 +233,7 @@ where
     let tmp_dir = tmp_dir.as_ref();
 
     let mut errs = vec![];
+    let mut workers = vec![];
 
     'outer: for dir in
         fs::read_dir(tmp_dir).with_context(|| format!("Unable to read {tmp_dir:?}"))?
@@ -320,11 +321,26 @@ where
             continue;
         };
 
-        if let Err(e) = fun(&tmp_dir, &student_name_dir_path, &archive_file) {
+        // CONSIDER Add sender receiver to send errors. Every thread gets sender, later we collect after joining
+        let tmp_dir = tmp_dir.to_owned();
+        let handle = thread::spawn(move || {
+            // Fuck it, don't want to fight the compiler because it picks a lifetime for references, this will not be the bottleneck
+            // Btw. I was right, the multithreading as is cut the time of `prepare` from 11.6 to 4.5 seconds
+            let res = fun(tmp_dir, student_name_dir_path.clone(), archive_file.clone());
+            (res, student_name_dir_path, archive_file)
+        });
+        workers.push(handle);
+    }
+
+    for worker in workers {
+        let (res, student_name_dir_path, archive_file) = worker
+            .join()
+            .map_err(|e| anyhow!("Unable to join worker: {e:?}"))?;
+        if let Err(e) = res {
             debug!(?e, "Error extracting {archive_file:?}");
             handle_sub_err!(
                 "Error extracting {archive_file:?} \
-                    for {student_name_dir_path:?}: {e:?}",
+                         for {student_name_dir_path:?}: {e:?}",
                 fs::remove_file(&student_name_dir_path),
                 errs,
                 abort_on_err
