@@ -200,63 +200,6 @@ where
     Ok(())
 }
 
-/// Replace diacritics and remove all non-ASCII characters
-#[instrument]
-pub fn clean_non_ascii<P>(path: P, keep_non_ascii: bool) -> Result<()>
-where
-    P: AsRef<Path> + Debug,
-{
-    const REPLACEMENTS: &[(char, &str)] = &[
-        ('Ä', "Ae"),
-        ('ä', "ae"),
-        ('Ö', "Oe"),
-        ('ö', "oe"),
-        ('Ü', "Ue"),
-        ('ü', "ue"),
-        ('ß', "ss"),
-    ];
-
-    for entry in WalkDir::new(&path) {
-        let entry = entry.with_context(|| format!("Invalid entry in {path:?}"))?;
-
-        let file_path = entry.path();
-
-        if file_path.is_dir()
-            || file_path
-                .extension()
-                .and_then(|ext| ext.to_str())
-                .map(|ext| ext.eq_ignore_ascii_case("java"))
-                != Some(true)
-        {
-            continue;
-        }
-
-        trace!("Checking {file_path:?} for diacritics");
-
-        let content = fs::read_to_string(&file_path)
-            .with_context(|| format!("Unable to read {file_path:?}"))?;
-
-        let mut sanitized_content = REPLACEMENTS
-            .iter()
-            .fold(content.clone(), |acc, &(from, to)| acc.replace(from, to));
-
-        if !keep_non_ascii {
-            sanitized_content = sanitized_content.replace(|c: char| !c.is_ascii(), "");
-        }
-
-        if sanitized_content == content {
-            debug!("{file_path:?} did not contain diacritics");
-            continue;
-        }
-
-        trace!("{file_path:?} did contained diacritics, replacing content");
-        fs::write(&file_path, sanitized_content)
-            .with_context(|| format!("Unable to write to file {file_path:?}"))?
-    }
-
-    Ok(())
-}
-
 #[instrument(skip_all)]
 pub fn listen_for_output(program: &mut Child) -> Result<()> {
     match program.stdout {

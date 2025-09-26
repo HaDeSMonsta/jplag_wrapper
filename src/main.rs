@@ -58,12 +58,8 @@ fn main() -> Result<()> {
     )
     .context("Initialization failed")?;
 
-    let errs = prepare(
-        &parsed_args.tmp_dir,
-        parsed_args.keep_non_ascii,
-        parsed_args.abort_on_error,
-    )
-    .context("Preparing submissions failed")?;
+    let errs = prepare(&parsed_args.tmp_dir, parsed_args.abort_on_error)
+        .context("Preparing submissions failed")?;
 
     let runtime = start.elapsed();
 
@@ -220,12 +216,8 @@ where
 /// # Note
 /// - The function assumes that all valid archive files are correctly formatted and extractable.
 /// - Submission directories must only contain one valid archive file. Multiple archives are not supported.
-#[instrument(skip(keep_non_ascii, abort_on_err))]
-fn prepare<P>(
-    tmp_dir: P,
-    keep_non_ascii: bool,
-    abort_on_err: bool,
-) -> Result<Vec<color_eyre::eyre::Error>>
+#[instrument(skip(abort_on_err))]
+fn prepare<P>(tmp_dir: P, abort_on_err: bool) -> Result<Vec<color_eyre::eyre::Error>>
 where
     P: AsRef<Path> + Debug,
 {
@@ -352,10 +344,6 @@ where
 
     info!("Unzipped all submissions, Sanitizing output files");
     helper::sanitize_submissions(&tmp_dir).with_context(|| "Unable to sanitize output files")?;
-
-    info!("Sanitized output files, replacing diacritics");
-    helper::clean_non_ascii(&tmp_dir, keep_non_ascii)
-        .with_context(|| "Unable to replace diacritics")?;
 
     let err_cnt = errs.len();
 

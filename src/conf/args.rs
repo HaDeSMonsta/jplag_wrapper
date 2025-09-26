@@ -28,12 +28,6 @@ pub struct Args {
     /// Possible values are: trace (5), debug (4), info (3), warn (2), error (1).
     #[clap(short, long, default_value_t = String::from(DEFAULT_LOG_LEVEL_STR))]
     log_level: String,
-    /// Keep all non ASCII characters from all submissions
-    ///
-    /// jplag can't handle non ASCII characters properly, so we remove them by default.
-    /// Set this flag to keep them
-    #[clap(long)]
-    keep_non_ascii: bool,
     /// Set to abort on any extraction related error
     ///
     /// Default is to continue and display errors after viewing jplag output
@@ -124,10 +118,6 @@ impl Args {
 
     pub fn log_level(&self) -> &str {
         &self.log_level
-    }
-
-    pub fn keep_non_ascii(&self) -> bool {
-        self.keep_non_ascii
     }
 
     pub fn abort_on_err(&self) -> bool {

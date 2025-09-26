@@ -35,7 +35,6 @@ Register-ArgumentCompleter -Native -CommandName 'jplag_wrapper' -ScriptBlock {
             [CompletionResult]::new('-j', '-j', [CompletionResultType]::ParameterName, 'Where the jplag jar can be found')
             [CompletionResult]::new('--jplag-jar', '--jplag-jar', [CompletionResultType]::ParameterName, 'Where the jplag jar can be found')
             [CompletionResult]::new('--init', '--init', [CompletionResultType]::ParameterName, 'Initialize the config, will create (or override!) `config.toml` with all values and fill it with the defaults')
-            [CompletionResult]::new('--keep-non-ascii', '--keep-non-ascii', [CompletionResultType]::ParameterName, 'Keep all non ASCII characters from all submissions')
             [CompletionResult]::new('--abort-on-err', '--abort-on-err', [CompletionResultType]::ParameterName, 'Set to abort on any extraction related error')
             [CompletionResult]::new('-p', '-p', [CompletionResultType]::ParameterName, 'Set to not remove {{tmp_dir}} when the program finishes')
             [CompletionResult]::new('--preserve-tmp-dir', '--preserve-tmp-dir', [CompletionResultType]::ParameterName, 'Set to not remove {{tmp_dir}} when the program finishes')

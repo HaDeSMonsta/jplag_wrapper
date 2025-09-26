@@ -32,7 +32,6 @@ pub(crate) struct ParsedArgs {
     #[cfg(not(debug_assertions))]
     pub(crate) preserve_tmp_dir: bool,
     pub(crate) target_dir: String,
-    pub(crate) keep_non_ascii: bool,
     pub(crate) abort_on_error: bool,
     pub(crate) jplag_jar: String,
     pub(crate) jplag_args: Vec<String>,
@@ -107,22 +106,23 @@ pub fn parse_args() -> Result<ParsedArgs> {
     debug!("Set jplag_jar to {jplag_jar}");
 
     let mut jplag_args = ARGS.jplag_args().clone();
-    let mut jplag_args_overridden = true;
-    if jplag_args.is_empty() {
+    let jplag_args_overridden = !jplag_args.is_empty();
+
+    if !jplag_args_overridden {
         let mut to_append = CONFIG.jplag_args.clone().unwrap_or_else(|| {
-            jplag_args_overridden = false;
+            // If you change this, change the default args in in `dump_default_config()` too
             vec![
                 tmp_dir.clone(),
                 String::from("-r"),
                 format!("{target_dir}/{DEFAULT_RES_ZIP}"),
                 String::from("-l"),
                 String::from(DEFAULT_JAVA_VERSION),
+                String::from("--encoding"),
+                String::from("utf-8"),
             ]
         });
         jplag_args.append(&mut to_append);
-    }
 
-    if !jplag_args_overridden {
         debug!("Jplag args were not overridden, checking for ignore file");
         let ignore_file = ARGS.ignore_file().clone().or(CONFIG.ignore_file.clone());
 
@@ -158,7 +158,6 @@ pub fn parse_args() -> Result<ParsedArgs> {
         #[cfg(not(debug_assertions))]
         preserve_tmp_dir,
         target_dir,
-        keep_non_ascii: ARGS.keep_non_ascii(),
         abort_on_error: ARGS.abort_on_err(),
         jplag_jar,
         jplag_args,
@@ -228,14 +227,17 @@ fn dump_default_config() -> Result<()> {
         source_zip: Some(String::from(DEFAULT_SOURCE_FILE)),
         target_dir: Some(String::from(DEFAULT_TARGET_DIR)),
         tmp_dir: Some(String::from(DEFAULT_TMP_DIR)),
-        ignore_file: None, // Don't like it, but if we set something the next run might fail
+        ignore_file: None, // Don't like it, but if we set something, the next run might fail
         jplag_jar: Some(String::from(DEFAULT_JPLAG_FILE)),
+        // If you change this, change the default args in in `parse_args()` too
         jplag_args: Some(vec![
             String::from(DEFAULT_TMP_DIR),
             String::from("-r"),
             format!("{DEFAULT_TARGET_DIR}/{DEFAULT_RES_ZIP}"),
             String::from("-l"),
             String::from(DEFAULT_JAVA_VERSION),
+            String::from("--encoding"),
+            String::from("utf-8"),
         ]),
     };
     debug!("Created default config struct");

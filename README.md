@@ -4,7 +4,7 @@ This is a wrapper for the [jplag plagiarism detection tool.](https://github.com/
 
 # Prerequisites
 
-- [jplag v6.1.0](https://github.com/jplag/JPlag/releases/tag/v6.1.0)
+- [jplag v6.2.0](https://github.com/jplag/JPlag/releases/tag/v6.2.0) or higher (we depend on `--encoding`)
 - java
 - basic command line knowledge
 - a zip file with submissions
@@ -12,21 +12,21 @@ This is a wrapper for the [jplag plagiarism detection tool.](https://github.com/
 # Usage
 
 - For the cli usage use `--help`, or `-h` for compact
-  - To avoid having to use cli args, those are the defaults
-    - `source_zip`: `submissions.zip`
-    - `jplag_jar`: `jplag.jar`
-    - `tmp_dir`: `tmp/`
-    - `out_dir`: `out/`
-  - Another way would be to set the config in a `config.toml` file
-    - Use `--init` to auto generate one
-    - The generated file will have default values set for most variables (more with `--help`)
-    - You don't need to set variables you do not wish to override
+    - To avoid having to use cli args, those are the defaults
+        - `source_zip`: `submissions.zip`
+        - `jplag_jar`: `jplag.jar`
+        - `tmp_dir`: `tmp/`
+        - `out_dir`: `out/`
+    - Another way would be to set the config in a `config.toml` file
+        - Use `--init` to auto generate one
+        - The generated file will have default values set for most variables (more with `--help`)
+        - You don't need to set variables you do not wish to override
 - Get a jar file from [jplags releases](https://github.com/jplag/JPlag/releases)
-  - This is tested with `v6.1.0`
+    - This is tested with `v6.2.0`
 - Get a zip file with submissions
-  - We assume exactly one input zip file
-  - Which extracts to at zero or more subdirs (zero would be kinda weird, but you do you)
-  - Each of those should contain exactly one zip file with the actual work of the student
+    - We assume exactly one input zip file
+    - Which extracts to at zero or more subdirs (zero would be kinda weird, but you do you)
+    - Each of those should contain exactly one zip file with the actual work of the student
 
 # Example usage
 
