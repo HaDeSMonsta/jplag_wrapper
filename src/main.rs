@@ -232,6 +232,7 @@ where
     info!("Extracting individual submissions");
     let tmp_dir = tmp_dir.as_ref();
 
+    let mut processed_cnt = 0;
     let mut errs = vec![];
     let mut workers = vec![];
 
@@ -294,6 +295,7 @@ where
                     continue;
                 }
             };
+            processed_cnt += 1;
             if let Some(file) = archive_file {
                 debug!("Multiple archives found");
                 handle_sub_err!(
@@ -355,7 +357,19 @@ where
     helper::clean_non_ascii(&tmp_dir, keep_non_ascii)
         .with_context(|| "Unable to replace diacritics")?;
 
-    match errs.len() {
+    let err_cnt = errs.len();
+
+    match processed_cnt {
+        0 => bail!("processed zero entries"),
+        1 => info!("processed one entry"),
+        n => info!("processed {n} entries"),
+    }
+    match processed_cnt - err_cnt {
+        0 => bail!("no successful preparations"),
+        1 => info!("successfully prepared one submission"),
+        n => info!("successfully prepared {n} submissions"),
+    }
+    match err_cnt {
         0 => {}
         1 => warn!("There was 1 error"),
         n => warn!("There were {n} errors"),
