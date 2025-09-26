@@ -5,8 +5,8 @@ mod helper;
 mod macros;
 
 use crate::conf::config::ARGS;
-use color_eyre::Result;
 use color_eyre::eyre::{Context, anyhow, bail};
+use color_eyre::{Report, Result};
 use conf::config;
 use std::fmt::Debug;
 use std::fs;
@@ -58,7 +58,7 @@ fn main() -> Result<()> {
     )
     .context("Initialization failed")?;
 
-    let errs = prepare(&parsed_args.tmp_dir, parsed_args.abort_on_error)
+    let (errs, processed_cnt) = prepare(&parsed_args.tmp_dir, parsed_args.abort_on_error)
         .context("Preparing submissions failed")?;
 
     let runtime = start.elapsed();
@@ -70,8 +70,29 @@ fn main() -> Result<()> {
     )
     .context("Running jplag failed")?;
 
-    for err in errs {
+    let err_cnt = errs.len();
+
+    println!();
+    match processed_cnt {
+        0 => bail!("processed zero entries"),
+        1 => info!("processed one entry"),
+        n => info!("processed {n} entries"),
+    }
+    match processed_cnt - err_cnt {
+        0 => bail!("no successful preparations"),
+        1 => info!("successfully prepared one submission"),
+        n => info!("successfully prepared {n} submissions"),
+    }
+    match err_cnt {
+        0 => {}
+        1 => warn!("There was 1 error"),
+        n => warn!("There were {n} errors"),
+    }
+    println!();
+
+    for err in &errs {
         warn!(%err);
+        println!();
     }
 
     #[cfg(not(debug_assertions))]
@@ -217,7 +238,7 @@ where
 /// - The function assumes that all valid archive files are correctly formatted and extractable.
 /// - Submission directories must only contain one valid archive file. Multiple archives are not supported.
 #[instrument(skip(abort_on_err))]
-fn prepare<P>(tmp_dir: P, abort_on_err: bool) -> Result<Vec<color_eyre::eyre::Error>>
+fn prepare<P>(tmp_dir: P, abort_on_err: bool) -> Result<(Vec<Report>, usize)>
 where
     P: AsRef<Path> + Debug,
 {
@@ -345,25 +366,7 @@ where
     info!("Unzipped all submissions, Sanitizing output files");
     helper::sanitize_submissions(&tmp_dir).with_context(|| "Unable to sanitize output files")?;
 
-    let err_cnt = errs.len();
-
-    match processed_cnt {
-        0 => bail!("processed zero entries"),
-        1 => info!("processed one entry"),
-        n => info!("processed {n} entries"),
-    }
-    match processed_cnt - err_cnt {
-        0 => bail!("no successful preparations"),
-        1 => info!("successfully prepared one submission"),
-        n => info!("successfully prepared {n} submissions"),
-    }
-    match err_cnt {
-        0 => {}
-        1 => warn!("There was 1 error"),
-        n => warn!("There were {n} errors"),
-    }
-
-    Ok(errs)
+    Ok((errs, processed_cnt))
 }
 
 /// Runs JPlag with the specified arguments and logs the results.
