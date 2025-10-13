@@ -20,18 +20,18 @@ pub fn check_java_executable() -> Result<()> {
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
-        .with_context(|| format!("Unable to start to run `{CMD} {ARG}`"))?;
+        .with_context(|| format!("unable to start to run `{CMD} {ARG}`"))?;
 
-    trace!("Spawned child");
+    trace!("spawned child");
 
     if child
         .wait()
-        .with_context(|| format!("Unable to wait for`{CMD} {ARG}`"))?
+        .with_context(|| format!("unable to wait for`{CMD} {ARG}`"))?
         .success()
     {
         Ok(())
     } else {
-        bail!("Unable to run `{CMD} {ARG}`, {CMD} is probably not installed");
+        bail!("unable to run `{CMD} {ARG}`, {CMD} is probably not installed");
     }
 }
 
@@ -41,26 +41,26 @@ where
     P: AsRef<Path> + Debug,
     Q: AsRef<Path> + Debug,
 {
-    trace!("Unzipping archive");
+    trace!("unzipping archive");
     let src_file = OpenOptions::new()
         .read(true)
         .open(&zip)
-        .with_context(|| format!("Unable to open src_file: {zip:?}"))?;
+        .with_context(|| format!("unable to open src_file: {zip:?}"))?;
 
-    trace!("Opened zip");
+    trace!("opened zip");
 
     let mut archive = ZipArchive::new(BufReader::new(src_file))
-        .with_context(|| format!("Unable to parse {zip:?} to a ZipArchive"))?;
+        .with_context(|| format!("unable to parse {zip:?} to a zip archive"))?;
 
-    trace!("Created zip archive");
+    trace!("created zip archive");
 
     let archive_len = archive.len();
-    trace!("Archive len: {archive_len}");
+    trace!("archive len: {archive_len}");
 
     for i in 0..archive_len {
         let mut file = archive.by_index(i).with_context(|| {
             format!(
-                "Unable to get file by index {i} \
+                "unable to get file by index {i} \
                 (should be impossible, as we iterate over len, len = {archive_len})"
             )
         })?;
@@ -69,18 +69,18 @@ where
 
         let out_path = dest.as_ref().join(file.enclosed_name().unwrap());
 
-        trace!("Set out path: {out_path:?}");
+        trace!("set out path: {out_path:?}");
 
         if file.is_dir() {
             fs::create_dir_all(&out_path)
-                .with_context(|| format!("Unable to create out dir: {out_path:?}"))?;
-            trace!("Created out_path");
+                .with_context(|| format!("unable to create out dir: {out_path:?}"))?;
+            trace!("created out_path");
         } else {
             if let Some(parent) = out_path.parent() {
                 if !parent.exists() {
                     fs::create_dir_all(parent)
-                        .with_context(|| format!("Unable to create parent dir: {parent:?}"))?;
-                    trace!("Created parent");
+                        .with_context(|| format!("unable to create parent dir: {parent:?}"))?;
+                    trace!("created parent");
                 }
             }
             let mut out_file = OpenOptions::new()
@@ -88,14 +88,14 @@ where
                 .create(true)
                 .truncate(true)
                 .open(&out_path)
-                .with_context(|| format!("Unable to open/create out_file: {out_path:?}"))?;
+                .with_context(|| format!("unable to open/create out_file: {out_path:?}"))?;
 
-            trace!("Created/opened out_file {out_file:?}");
+            trace!("created/opened out_file {out_file:?}");
 
             io::copy(&mut file, &mut out_file).with_context(|| {
-                format!("Unable to io copy {src} to {out_file:?}", src = file.name())
+                format!("unable to io copy {src} to {out_file:?}", src = file.name())
             })?;
-            trace!("IO copied {src} to {out_file:?}", src = file.name());
+            trace!("io copied {src} to {out_file:?}", src = file.name());
         }
     }
 
@@ -108,10 +108,10 @@ where
     P: AsRef<Path> + Debug,
 {
     let tmp_dir = tmp_dir.as_ref();
-    debug!("Adding additional submissions"); // CONSIDER Info
+    debug!("adding additional submissions"); // CONSIDER Info
     for dir in sub_dir_vec {
-        trace!("Processing {dir}");
-        if !fs::exists(dir).with_context(|| format!("Unable to check if {dir} exists"))? {
+        trace!("processing {dir}");
+        if !fs::exists(dir).with_context(|| format!("unable to check if {dir} exists"))? {
             bail!("{dir} doesn't exist");
         }
         if !PathBuf::from(dir).is_dir() {
@@ -121,21 +121,21 @@ where
         trace!("{dir} exists and is a dir, copying");
 
         let tmp_root = tmp_dir.join(&dir);
-        fs::create_dir_all(&tmp_root).with_context(|| format!("Unable to create {tmp_root:?}"))?;
+        fs::create_dir_all(&tmp_root).with_context(|| format!("unable to create {tmp_root:?}"))?;
 
         for entry in WalkDir::new(&dir) {
-            let entry = entry.with_context(|| format!("Error processing entry in {dir}"))?;
+            let entry = entry.with_context(|| format!("error processing entry in {dir}"))?;
             let src_path = entry.path();
             let dest_path = tmp_dir.join(&src_path);
 
-            trace!("Copying {src_path:?} to {dest_path:?}");
+            trace!("copying {src_path:?} to {dest_path:?}");
 
             if src_path.is_dir() {
                 fs::create_dir_all(&dest_path)
-                    .with_context(|| format!("Unable to create path {dest_path:?}"))?;
+                    .with_context(|| format!("unable to create path {dest_path:?}"))?;
             } else {
                 fs::copy(&src_path, &dest_path)
-                    .with_context(|| format!("Unable to copy {src_path:?} to {dest_path:?}"))?;
+                    .with_context(|| format!("unable to copy {src_path:?} to {dest_path:?}"))?;
             }
         }
     }
@@ -168,33 +168,33 @@ where
         ".iml",
     ];
 
-    debug!("Removing files");
+    debug!("removing files");
 
     'outer: for entry in WalkDir::new(&path) {
-        let entry = entry.with_context(|| format!("Invalid entry in {path:?}"))?;
+        let entry = entry.with_context(|| format!("invalid entry in {path:?}"))?;
         let path = entry.path();
         let is_dir = path.is_dir();
-        let span = info_span!("Checking file", ?path, is_dir);
+        let span = info_span!("checking file", ?path, is_dir);
         let _enter = span.enter();
         if is_dir {
             for dir in TO_REM_DIRS {
                 if path.ends_with(dir) {
-                    trace!("Found match to remove");
+                    trace!("found match to remove");
                     fs::remove_dir_all(path)
-                        .with_context(|| format!("Unable to remove {path:?}"))?;
+                        .with_context(|| format!("unable to remove {path:?}"))?;
                     continue 'outer;
                 }
             }
         } else {
             for file in TO_REM_FILES {
                 if path.ends_with(file) {
-                    trace!("Found match to remove");
-                    fs::remove_file(path).with_context(|| format!("Unable to remove {path:?}"))?;
+                    trace!("found match to remove");
+                    fs::remove_file(path).with_context(|| format!("unable to remove {path:?}"))?;
                     continue 'outer;
                 }
             }
         }
-        trace!("No match found");
+        trace!("no match found");
     }
 
     Ok(())
@@ -207,11 +207,11 @@ pub fn listen_for_output(program: &mut Child) -> Result<()> {
             let reader = BufReader::new(out);
 
             for line in reader.lines() {
-                let line = line.with_context(|| "Unable to parse line from jplag")?;
+                let line = line.with_context(|| "unable to parse line from jplag")?;
                 println!("{line}");
             }
         }
-        None => warn!("No output :("),
+        None => warn!("no output :("),
     }
     Ok(())
 }

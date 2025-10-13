@@ -23,33 +23,33 @@ const PROGRAM_NAME: &str = "JPlag-rs";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() -> Result<()> {
-    color_eyre::install().context("Failed to install :(")?;
+    color_eyre::install().context("failed to install :(")?;
     let start = Instant::now();
 
     {
         let log_level = ARGS
             .log_level()
             .parse::<Level>()
-            .context("Unable to parse log level")?;
+            .context("unable to parse log level")?;
 
         let subscriber = FmtSubscriber::builder().with_max_level(log_level).finish();
         tracing::subscriber::set_global_default(subscriber)
             .context("setting default subscriber failed")?;
     }
-    debug!("Default subscriber is set");
+    debug!("default subscriber is set");
 
     info!("{PROGRAM_NAME} v{VERSION}");
 
-    let parsed_args = config::parse_args().context("Unable to parse args")?;
+    let parsed_args = config::parse_args().context("unable to parse args")?;
     debug!(?parsed_args);
 
-    info!("Checking if java is executable");
+    info!("checking if java is executable");
 
-    helper::check_java_executable().context("Check if java is executable failed")?;
+    helper::check_java_executable().context("check if java is executable failed")?;
 
-    info!("Check successful");
+    info!("check successful");
 
-    info!("Initializing project");
+    info!("initializing project");
     init(
         &parsed_args.source_file,
         &parsed_args.target_dir,
@@ -57,10 +57,10 @@ fn main() -> Result<()> {
         &parsed_args.jplag_jar,
         &parsed_args.additional_submission_dirs,
     )
-    .context("Initialization failed")?;
+    .context("initialization failed")?;
 
     let (errs, processed_cnt) = prepare(&parsed_args.tmp_dir, parsed_args.abort_on_error)
-        .context("Preparing submissions failed")?;
+        .context("preparing submissions failed")?;
 
     let runtime = start.elapsed();
 
@@ -69,7 +69,7 @@ fn main() -> Result<()> {
         &parsed_args.jplag_jar,
         &parsed_args.jplag_args,
     )
-    .context("Running jplag failed")?;
+    .context("running jplag failed")?;
 
     let err_cnt = errs.len();
 
@@ -86,8 +86,8 @@ fn main() -> Result<()> {
     }
     match err_cnt {
         0 => {}
-        1 => warn!("There was 1 error"),
-        n => warn!("There were {n} errors"),
+        1 => warn!("there was 1 error"),
+        n => warn!("there were {n} errors"),
     }
     println!();
 
@@ -100,16 +100,16 @@ fn main() -> Result<()> {
     {
         if parsed_args.preserve_tmp_dir {
             info!(
-                "Not cleaning up, goodbye! ({ms} ms)",
+                "not cleaning up, goodbye! ({ms} ms)",
                 ms = runtime.as_millis()
             );
         } else {
-            info!("Cleaning up");
+            info!("cleaning up");
             let tmp_dir = &parsed_args.tmp_dir;
             fs::remove_dir_all(&tmp_dir)
-                .with_context(|| format!("Removing tmp dir {tmp_dir:?} failed"))?;
+                .with_context(|| format!("removing tmp dir {tmp_dir:?} failed"))?;
             info!(
-                "Finished cleanup, goodbye! ({ms} ms)",
+                "finished cleanup, goodbye! ({ms} ms)",
                 ms = runtime.as_millis()
             );
         }
@@ -117,7 +117,7 @@ fn main() -> Result<()> {
 
     #[cfg(debug_assertions)]
     info!(
-        "Finished {PROGRAM_NAME}, goodbye! ({ms} ms)",
+        "finished {PROGRAM_NAME}, goodbye! ({ms} ms)",
         ms = runtime.as_millis()
     );
 
@@ -162,39 +162,39 @@ where
     Q: AsRef<Path> + Debug,
     R: AsRef<Path> + Debug,
 {
-    debug!(?source_file, "Checking if source zip file exist");
+    debug!(?source_file, "checking if source zip file exist");
     if !fs::exists(&source_file)
-        .with_context(|| format!("Unable to confirm if {source_file:?} exists"))?
+        .with_context(|| format!("unable to confirm if {source_file:?} exists"))?
     {
-        bail!("Unable to find source zip file {source_file:?}");
+        bail!("unable to find source zip file {source_file:?}");
     }
 
-    debug!(?jplag_jar, "Checking if jplag jar file exists");
+    debug!(?jplag_jar, "checking if jplag jar file exists");
     if !fs::exists(&jplag_jar)
-        .with_context(|| format!("Unable to confirm if {jplag_jar:?} exists"))?
+        .with_context(|| format!("unable to confirm if {jplag_jar:?} exists"))?
     {
-        bail!("Unable to find jplag jar file {jplag_jar:?}");
+        bail!("unable to find jplag jar file {jplag_jar:?}");
     }
 
-    debug!(?result_dir, "Recreating result dir");
+    debug!(?result_dir, "recreating result dir");
     let _ = fs::remove_dir_all(&result_dir);
     fs::create_dir_all(&result_dir)?;
 
-    debug!(?tmp_dir, "Removing tmp dir");
+    debug!(?tmp_dir, "removing tmp dir");
     let _ = fs::remove_dir_all(&tmp_dir);
 
-    debug!("Unzipping {source_file:?} to {tmp_dir:?}");
+    debug!("unzipping {source_file:?} to {tmp_dir:?}");
     helper::unzip_to(&source_file, &tmp_dir)
-        .with_context(|| format!("Unable to extract {source_file:?} to {tmp_dir:?}"))?;
+        .with_context(|| format!("unable to extract {source_file:?} to {tmp_dir:?}"))?;
 
     helper::add_subs(&additional_submission_dirs, &tmp_dir).with_context(|| {
         format!(
-            "Unable to copy additional submissions \
+            "unable to copy additional submissions \
             {additional_submission_dirs:?} to {tmp_dir:?}"
         )
     })?;
 
-    info!("Unzipped {source_file:?} to {tmp_dir:?}");
+    info!("unzipped {source_file:?} to {tmp_dir:?}");
 
     Ok(())
 }
@@ -252,7 +252,7 @@ fn prepare<P>(tmp_dir: P, abort_on_err: bool) -> Result<(Vec<Report>, usize)>
 where
     P: AsRef<Path> + Debug,
 {
-    info!("Extracting individual submissions");
+    info!("extracting individual submissions");
     let tmp_dir = tmp_dir.as_ref();
 
     let mut processed_cnt = 0;
@@ -260,19 +260,19 @@ where
     let mut workers = vec![];
 
     'outer: for dir in
-        fs::read_dir(tmp_dir).with_context(|| format!("Unable to read {tmp_dir:?}"))?
+        fs::read_dir(tmp_dir).with_context(|| format!("unable to read {tmp_dir:?}"))?
     {
-        let dir = dir.with_context(|| format!("Unable to read a dir in {tmp_dir:?}"))?;
+        let dir = dir.with_context(|| format!("unable to read a dir in {tmp_dir:?}"))?;
         let student_name_dir_path = dir.path();
         let span =
             span!(Level::INFO, "processing submissions", submission = ?student_name_dir_path);
         let _guard = span.enter();
-        debug!("Processing student submission");
+        debug!("processing student submission");
 
         if !student_name_dir_path.is_dir() {
-            trace!("Found non dir");
+            trace!("found non dir");
             handle_sub_err!(
-                "Everything in {tmp_dir:?} should be a dir, found {student_name_dir_path:?}",
+                "everything in {tmp_dir:?} should be a dir, found {student_name_dir_path:?}",
                 fs::remove_file(&student_name_dir_path),
                 errs,
                 abort_on_err
@@ -284,15 +284,15 @@ where
         let mut fun: fn(_, _, _) -> Result<()> = archive_handler::dummy;
         for archive in WalkDir::new(&student_name_dir_path) {
             let archive =
-                archive.with_context(|| format!("Invalid archive in {student_name_dir_path:?}"))?;
+                archive.with_context(|| format!("invalid archive in {student_name_dir_path:?}"))?;
             let archive_file_path = archive.path();
 
             let span = span!(Level::INFO, "student archive", ?archive_file_path);
             let _guard = span.enter();
-            trace!("Processing file for student");
+            trace!("processing file for student");
 
             if archive.path().is_dir() {
-                trace!("Archive is dir, skipping");
+                trace!("archive is dir, skipping");
                 continue;
             }
 
@@ -308,10 +308,10 @@ where
                 Some(ref s) if s == "tar" => archive_handler::tar,
                 Some(ref s) if s == "gz" => archive_handler::gz, // NOTE We assume, that all files ending in `.gz` are `.tar.gz` files
                 _ => {
-                    trace!("Found non archive file {archive:?}, removing");
+                    trace!("found non archive file {archive:?}, removing");
                     fs::remove_file(&archive_file_path).with_context(|| {
                         format!(
-                            "Unable to remove non archive file \
+                            "unable to remove non archive file \
                             {archive:?}"
                         )
                     })?;
@@ -320,12 +320,12 @@ where
             };
             processed_cnt += 1;
             if let Some(file) = archive_file {
-                debug!("Multiple archives found");
+                debug!("multiple archives found");
                 handle_sub_err!(
-                    "Found at least two archive files for student {student_name_dir_path:?}, \
+                    "found at least two archive files for student {student_name_dir_path:?}, \
                         expected one:\n\
-                        \tFirst: {file:?}\n\
-                        \tSecond: {archive_file_path:?}",
+                        \tfirst: {file:?}\n\
+                        \tsecond: {archive_file_path:?}",
                     fs::remove_dir_all(&student_name_dir_path),
                     errs,
                     abort_on_err
@@ -336,9 +336,9 @@ where
         }
 
         let Some(archive_file) = archive_file else {
-            debug!("No archive found");
+            debug!("no archive found");
             handle_sub_err!(
-                "No archive for student {student_name_dir_path:?}",
+                "no archive for student {student_name_dir_path:?}",
                 fs::remove_dir_all(&student_name_dir_path),
                 errs,
                 abort_on_err
@@ -360,11 +360,11 @@ where
     for worker in workers {
         let (res, student_name_dir_path, archive_file) = worker
             .join()
-            .map_err(|e| anyhow!("Unable to join worker: {e:?}"))?;
+            .map_err(|e| anyhow!("unable to join worker: {e:?}"))?;
         if let Err(e) = res {
-            debug!(?e, "Error extracting {archive_file:?}");
+            debug!(?e, "error extracting {archive_file:?}");
             handle_sub_err!(
-                "Error extracting {archive_file:?} \
+                "error extracting {archive_file:?} \
                          for {student_name_dir_path:?}: {e:?}",
                 fs::remove_file(&student_name_dir_path),
                 errs,
@@ -373,8 +373,8 @@ where
         }
     }
 
-    info!("Unzipped all submissions, Sanitizing output files");
-    helper::sanitize_submissions(&tmp_dir).with_context(|| "Unable to sanitize output files")?;
+    info!("unzipped all submissions, Sanitizing output files");
+    helper::sanitize_submissions(&tmp_dir).with_context(|| "unable to sanitize output files")?;
 
     Ok((errs, processed_cnt))
 }
@@ -388,7 +388,7 @@ fn run(result_dir: &str, jplag_jar: &str, jplag_args: &Vec<String>) -> Result<()
         jplag_cmd.push_str(&format!(" {str}"));
     }
 
-    info!(cmd = jplag_cmd, "Starting jplag");
+    info!(cmd = jplag_cmd, "starting jplag");
     let span = debug_span!("execute", cmd = jplag_cmd);
     let _guard = span.enter();
 
@@ -400,41 +400,41 @@ fn run(result_dir: &str, jplag_jar: &str, jplag_args: &Vec<String>) -> Result<()
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .with_context(|| format!("Unable to run jplag command {jplag_cmd}"))?;
+        .with_context(|| format!("unable to run jplag command {jplag_cmd}"))?;
 
     helper::listen_for_output(&mut child)
-        .with_context(|| format!("Unable to listen to stdout of jplag, cmd: {jplag_cmd}"))?;
+        .with_context(|| format!("unable to listen to stdout of jplag, cmd: {jplag_cmd}"))?;
 
-    info!("Finished running jplag");
+    info!("finished running jplag");
 
     let status = child
         .wait()
-        .with_context(|| format!("Unable to wait for child process {jplag_cmd:?}"))?;
+        .with_context(|| format!("unable to wait for child process {jplag_cmd:?}"))?;
 
     if !status.success() {
-        warn!("Command failed, {status}");
-        warn!("To debug manually, run \"{jplag_cmd}\" in the current directory");
+        warn!("command failed, {status}");
+        warn!("to debug manually, run \"{jplag_cmd}\" in the current directory");
         // Do not clean up on purpose, wwe want to see what caused the error
-        bail!("Java jplag command failed, {status}");
+        bail!("java jplag command failed, {status}");
     } else {
         debug!("{status}");
-        let current_dir = env::current_dir().context("Unable to get current dir")?;
+        let current_dir = env::current_dir().context("unable to get current dir")?;
         let result_dir = current_dir.join(result_dir);
 
         let mut result_file = PathBuf::from(format!(
-            "Something went wrong, \
+            "something went wrong, \
             there seems to be no result in {result_dir:?}"
         ));
 
         // This dir should only contain exactly one file
         for file in fs::read_dir(&result_dir)
-            .with_context(|| format!("Unable to read result dir {result_dir:?}"))?
+            .with_context(|| format!("unable to read result dir {result_dir:?}"))?
         {
-            let file = file.with_context(|| format!("Invalid file in {result_dir:?}"))?;
+            let file = file.with_context(|| format!("invalid file in {result_dir:?}"))?;
             result_file = file.path();
         }
 
-        info!("The results are also saved in {result_file:?}");
+        info!("the results are also saved in {result_file:?}");
         Ok(())
     }
 }
