@@ -19,6 +19,7 @@ use tracing::{debug, info, warn};
 use tracing_subscriber::FmtSubscriber;
 use walkdir::WalkDir;
 
+const PROGRAM_NAME: &str = "JPlag-rs";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() -> Result<()> {
@@ -37,7 +38,7 @@ fn main() -> Result<()> {
     }
     debug!("Default subscriber is set");
 
-    info!("JPlag-rs v{VERSION}");
+    info!("{PROGRAM_NAME} v{VERSION}");
 
     let parsed_args = config::parse_args().context("Unable to parse args")?;
     debug!(?parsed_args);
@@ -98,18 +99,27 @@ fn main() -> Result<()> {
     #[cfg(not(debug_assertions))]
     {
         if parsed_args.preserve_tmp_dir {
-            info!("Not cleaning up, goodbye! ({} ms)", runtime.as_millis());
+            info!(
+                "Not cleaning up, goodbye! ({ms} ms)",
+                ms = runtime.as_millis()
+            );
         } else {
             info!("Cleaning up");
             let tmp_dir = &parsed_args.tmp_dir;
             fs::remove_dir_all(&tmp_dir)
                 .with_context(|| format!("Removing tmp dir {tmp_dir:?} failed"))?;
-            info!("Finished cleanup, goodbye! ({} ms)", runtime.as_millis());
+            info!(
+                "Finished cleanup, goodbye! ({ms} ms)",
+                ms = runtime.as_millis()
+            );
         }
     }
 
     #[cfg(debug_assertions)]
-    info!("Finished program, goodbye! ({} ms)", runtime.as_millis());
+    info!(
+        "Finished {PROGRAM_NAME}, goodbye! ({ms} ms)",
+        ms = runtime.as_millis()
+    );
 
     Ok(())
 }
