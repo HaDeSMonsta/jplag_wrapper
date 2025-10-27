@@ -1,3 +1,13 @@
+#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
+// Cognitive complexity is an interesting metric
+#![allow(
+    clippy::unnecessary_debug_formatting,
+    clippy::needless_borrow,
+    clippy::needless_borrows_for_generic_args,
+    clippy::used_underscore_binding,
+    clippy::cognitive_complexity,
+    clippy::too_many_lines
+)]
 mod archive_handler;
 mod conf;
 mod helper;
@@ -127,7 +137,7 @@ fn main() -> Result<()> {
 /// Initializes the file structure and prerequisite setup for the program to execute.
 ///
 /// This function performs the following steps:
-/// 1. Verifies the existence of the source zip file and the JPlag JAR file.
+/// 1. Verifies the existence of the source zip file and the `JPlag` JAR file.
 /// 2. Removes and recreates the result directory.
 /// 3. Removes the temporary directory if it exists.
 /// 4. Unzips the source file into the temporary directory.
@@ -138,7 +148,7 @@ fn main() -> Result<()> {
 /// - `result_dir`: The directory path where the results will be stored.
 /// - `tmp_dir`: The temporary directory path where the contents of the source file
 ///              will be unzipped and processed.
-/// - `jplag_jar`: The path to the JPlag JAR file
+/// - `jplag_jar`: The path to the `JPlag` JAR file
 /// - `additional_submission_dirs`: A vector of directory paths containing additional
 ///                                 submission files to be incorporated.
 ///
@@ -151,7 +161,7 @@ fn main() -> Result<()> {
 ///   - Adding additional submissions to the temporary directory fails.
 #[instrument(skip_all)]
 fn init<P, Q, R>(
-    source_file: P,
+    source_file: &P,
     result_dir: Q,
     tmp_dir: R,
     jplag_jar: &str,
@@ -299,7 +309,7 @@ where
             let archive_extension = archive_file_path
                 .extension()
                 .and_then(|e| e.to_str())
-                .and_then(|e| Some(e.to_ascii_lowercase()));
+                .map(str::to_ascii_lowercase);
 
             fun = match archive_extension {
                 Some(ref s) if s == "zip" => archive_handler::zip,
@@ -379,13 +389,14 @@ where
     Ok((errs, processed_cnt))
 }
 
-/// Runs JPlag with the specified arguments and logs the results.
+/// Runs `JPlag` with the specified arguments and logs the results.
 #[instrument(skip(jplag_jar, jplag_args))]
 fn run(result_dir: &str, jplag_jar: &str, jplag_args: &Vec<String>) -> Result<()> {
     let mut jplag_cmd = format!("java -jar {jplag_jar}");
 
     for str in jplag_args {
-        jplag_cmd.push_str(&format!(" {str}"));
+        jplag_cmd.push(' ');
+        jplag_cmd.push_str(&str);
     }
 
     info!(cmd = jplag_cmd, "starting jplag");
@@ -411,12 +422,7 @@ fn run(result_dir: &str, jplag_jar: &str, jplag_args: &Vec<String>) -> Result<()
         .wait()
         .with_context(|| format!("unable to wait for child process {jplag_cmd:?}"))?;
 
-    if !status.success() {
-        warn!("command failed, {status}");
-        warn!("to debug manually, run \"{jplag_cmd}\" in the current directory");
-        // Do not clean up on purpose, wwe want to see what caused the error
-        bail!("java jplag command failed, {status}");
-    } else {
+    if status.success() {
         debug!("{status}");
         let current_dir = env::current_dir().context("unable to get current dir")?;
         let result_dir = current_dir.join(result_dir);
@@ -436,5 +442,10 @@ fn run(result_dir: &str, jplag_jar: &str, jplag_args: &Vec<String>) -> Result<()
 
         info!("the results are also saved in {result_file:?}");
         Ok(())
+    } else {
+        warn!("command failed, {status}");
+        warn!("to debug manually, run \"{jplag_cmd}\" in the current directory");
+        // Do not clean up on purpose, wwe want to see what caused the error
+        bail!("java jplag command failed, {status}");
     }
 }

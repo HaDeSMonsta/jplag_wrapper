@@ -76,13 +76,14 @@ where
                 .with_context(|| format!("unable to create out dir: {out_path:?}"))?;
             trace!("created out_path");
         } else {
-            if let Some(parent) = out_path.parent() {
-                if !parent.exists() {
-                    fs::create_dir_all(parent)
-                        .with_context(|| format!("unable to create parent dir: {parent:?}"))?;
-                    trace!("created parent");
-                }
+            if let Some(parent) = out_path.parent()
+                && !parent.exists()
+            {
+                fs::create_dir_all(parent)
+                    .with_context(|| format!("unable to create parent dir: {parent:?}"))?;
+                trace!("created parent");
             }
+
             let mut out_file = OpenOptions::new()
                 .write(true)
                 .create(true)
@@ -202,16 +203,15 @@ where
 
 #[instrument(skip_all)]
 pub fn listen_for_output(program: &mut Child) -> Result<()> {
-    match program.stdout {
-        Some(ref mut out) => {
-            let reader = BufReader::new(out);
+    if let Some(ref mut out) = program.stdout {
+        let reader = BufReader::new(out);
 
-            for line in reader.lines() {
-                let line = line.with_context(|| "unable to parse line from jplag")?;
-                println!("{line}");
-            }
+        for line in reader.lines() {
+            let line = line.with_context(|| "unable to parse line from jplag")?;
+            println!("{line}");
         }
-        None => warn!("no output :("),
+    } else {
+        warn!("no output :(");
     }
     Ok(())
 }

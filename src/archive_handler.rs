@@ -32,7 +32,7 @@ where
 
     let zip_dir_name = student_name_dir_path
         .file_name()
-        .with_context(|| format!("unable to get file name of {:?}", student_name_dir_path))?;
+        .with_context(|| format!("unable to get file name of {student_name_dir_path:?}"))?;
 
     let dest = tmp_dir.join(&zip_dir_name);
 
@@ -75,7 +75,7 @@ where
     let rar_dir_name = student_name_dir_path
         .file_name()
         .and_then(|f| f.to_str())
-        .with_context(|| format!("unable to get file name of {:?}", student_name_dir_path))?;
+        .with_context(|| format!("unable to get file name of {student_name_dir_path:?}"))?;
 
     let dest = tmp_dir.join(format!("{rar_dir_name}/"));
 

@@ -24,14 +24,14 @@ _jplag_wrapper() {
 '-t+[Where to put the results]:TARGET_DIR:_default' \
 '--target-dir=[Where to put the results]:TARGET_DIR:_default' \
 '--tmp-dir=[Where to put the temporary files]:TMP_DIR:_default' \
-'-i+[Where to find the ignore file]:IGNORE_FILE:_default' \
-'--ignore-file=[Where to find the ignore file]:IGNORE_FILE:_default' \
+'-i+[Where to find the ignore-file]:IGNORE_FILE:_default' \
+'--ignore-file=[Where to find the ignore-file]:IGNORE_FILE:_default' \
 '-j+[Where the jplag jar can be found]:JPLAG_JAR:_default' \
 '--jplag-jar=[Where the jplag jar can be found]:JPLAG_JAR:_default' \
 '--init[Initialize the config, will create (or override!) \`config.toml\` with all values and fill it with the defaults]' \
 '--abort-on-err[Set to abort on any extraction related error]' \
-'-p[Set to not remove {{tmp_dir}} when the program finishes]' \
-'--preserve-tmp-dir[Set to not remove {{tmp_dir}} when the program finishes]' \
+'-p[Set to not remove \`{{tmp_dir}}\` when the program finishes]' \
+'--preserve-tmp-dir[Set to not remove \`{{tmp_dir}}\` when the program finishes]' \
 '--ignore-output[Set to ignore the output of jplag]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
