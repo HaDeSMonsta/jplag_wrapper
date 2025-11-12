@@ -19,19 +19,19 @@ strip = true
 minimal_rms = []
 
 [workspace.dependencies]
-clap = { version = "4.5.47", features = ["derive"] }
-clap_complete = "4.5.57"
+clap = { version = "4.5.51", features = ["derive"] }
+clap_complete = "4.5.60"
 color-eyre = "0.6.5"
-flate2 = "1.1.2"
-serde = { version = "1.0.219", features = ["derive"] }
+flate2 = "1.1.5"
+serde = { version = "1.0.228", features = ["derive"] }
 sevenz-rust = "0.6.1"
 tar = "0.4.44"
-toml = "0.9.5"
+toml = "0.9.8"
 tracing = "0.1.41"
 tracing-subscriber = "0.3.20"
 unrar = "0.5.8"
 walkdir = "2.5.0"
-zip = "5.0.0"
+zip = "6.0.0"
 
 [dependencies]
 clap.workspace = true
