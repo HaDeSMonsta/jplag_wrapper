@@ -1,5 +1,5 @@
 use color_eyre::Result;
-use color_eyre::eyre::{Context, bail};
+use color_eyre::eyre::{Context, ContextCompat, bail};
 use std::fmt::Debug;
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader};
@@ -155,7 +155,16 @@ where
     #[cfg(feature = "minimal_rms")]
     const TO_REM_FILES: &[&str] = &[".DS_STORE"];
     #[cfg(not(feature = "minimal_rms"))]
-    const TO_REM_DIRS: &[&str] = &["__MACOSX", ".idea", "target", "build", "gradle", ".git"];
+    const TO_REM_DIRS: &[&str] = &[
+        "__MACOSX",
+        ".idea",
+        "target",
+        "build",
+        "gradle",
+        ".git",
+        "out",
+        "Prog1Tools", // Extracted Prog1Tools
+    ];
     #[cfg(not(feature = "minimal_rms"))]
     const TO_REM_FILES: &[&str] = &[
         ".DS_STORE",
@@ -167,6 +176,9 @@ where
         "pom.xml",
         ".md",
         ".iml",
+        ".zip",   // Prog1Tools/templates/submissions
+        ".class", // Extracted Prog1Tools
+        ".mp3",
     ];
 
     debug!("removing files");
@@ -188,7 +200,12 @@ where
             }
         } else {
             for file in TO_REM_FILES {
-                if path.ends_with(file) {
+                // path.ends_with() only considers while parts, so we can't match extensions **and** file names with it
+                if path
+                    .to_str()
+                    .with_context(|| format!("invalid file name: {path:?}"))?
+                    .ends_with(file)
+                {
                     trace!("found match to remove");
                     fs::remove_file(path).with_context(|| format!("unable to remove {path:?}"))?;
                     continue 'outer;
