@@ -21,7 +21,7 @@ use conf::config;
 use std::fmt::Debug;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Command;
 use std::time::Instant;
 use std::{env, thread};
 use tracing::{Level, debug_span, instrument, span, trace};
@@ -407,14 +407,8 @@ fn run(result_dir: &str, jplag_jar: &str, jplag_args: &Vec<String>) -> Result<()
         .arg("-jar")
         .arg(&jplag_jar)
         .args(jplag_args)
-        .stdin(Stdio::inherit())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
         .spawn()
         .with_context(|| format!("unable to run jplag command {jplag_cmd}"))?;
-
-    helper::listen_for_output(&mut child)
-        .with_context(|| format!("unable to listen to stdout of jplag, cmd: {jplag_cmd}"))?;
 
     info!("finished running jplag");
 

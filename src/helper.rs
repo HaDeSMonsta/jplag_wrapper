@@ -2,9 +2,9 @@ use color_eyre::Result;
 use color_eyre::eyre::{Context, ContextCompat, bail};
 use std::fmt::Debug;
 use std::fs::OpenOptions;
-use std::io::{BufRead, BufReader};
+use std::io::BufReader;
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
+use std::process::{Command, Stdio};
 use std::{fs, io};
 use tracing::{Level, debug, info_span, instrument, span, trace, warn};
 use walkdir::WalkDir;
@@ -215,20 +215,5 @@ where
         trace!("no match found");
     }
 
-    Ok(())
-}
-
-#[instrument(skip_all)]
-pub fn listen_for_output(program: &mut Child) -> Result<()> {
-    if let Some(ref mut out) = program.stdout {
-        let reader = BufReader::new(out);
-
-        for line in reader.lines() {
-            let line = line.with_context(|| "unable to parse line from jplag")?;
-            println!("{line}");
-        }
-    } else {
-        warn!("no output :(");
-    }
     Ok(())
 }
