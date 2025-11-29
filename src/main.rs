@@ -48,7 +48,7 @@ fn main() -> Result<()> {
     }
     debug!("default subscriber is set");
 
-    info!("{PROGRAM_NAME} v{VERSION}");
+    info!("{PROGRAM_NAME} - v{VERSION}");
 
     let parsed_args = config::parse_args().context("unable to parse args")?;
     debug!(?parsed_args);
