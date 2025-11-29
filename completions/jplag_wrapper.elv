@@ -40,6 +40,20 @@ set edit:completion:arg-completer[jplag_wrapper] = {|@words|
             cand --help 'Print help (see more with ''--help'')'
             cand -V 'Print version'
             cand --version 'Print version'
+            cand complete 'complete'
+            cand help 'Print this message or the help of the given subcommand(s)'
+        }
+        &'jplag_wrapper;complete'= {
+            cand -h 'Print help'
+            cand --help 'Print help'
+        }
+        &'jplag_wrapper;help'= {
+            cand complete 'complete'
+            cand help 'Print this message or the help of the given subcommand(s)'
+        }
+        &'jplag_wrapper;help;complete'= {
+        }
+        &'jplag_wrapper;help;help'= {
         }
     ]
     $completions[$command]

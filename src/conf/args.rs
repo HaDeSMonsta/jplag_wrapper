@@ -1,4 +1,5 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
+use clap_complete::Shell;
 
 #[cfg(debug_assertions)]
 const DEFAULT_LOG_LEVEL_STR: &str = "debug";
@@ -18,6 +19,11 @@ const DEFAULT_LOG_LEVEL_STR: &str = "info";
 // Complains that `jplag_args` ends in `args`
 #[allow(clippy::struct_field_names, clippy::struct_excessive_bools)]
 pub struct Args {
+    /// Docs
+    ///
+    /// More
+    #[command(subcommand)]
+    cmd: Option<Cmd>,
     /// Initialize the config,
     /// will create (or override!) `config.toml` with all values
     /// and fill it with the defaults
@@ -112,6 +118,14 @@ pub struct Args {
     jplag_args: Vec<String>,
 }
 
+#[derive(Clone, Debug, Subcommand)]
+pub enum Cmd {
+    Complete {
+        /// The shell to generate completions for
+        shell: Shell,
+    },
+}
+
 #[allow(dead_code)]
 impl Args {
     pub const fn init(&self) -> bool {
@@ -188,5 +202,13 @@ impl Args {
 
     pub fn jplag_args(&self) -> &[String] {
         &self.jplag_args
+    }
+
+    pub const fn cmd(&self) -> Option<&Cmd> {
+        if let Some(ref cmd) = self.cmd {
+            Some(cmd)
+        } else {
+            None
+        }
     }
 }

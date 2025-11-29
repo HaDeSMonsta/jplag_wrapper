@@ -37,14 +37,83 @@ _jplag_wrapper() {
 '--help[Print help (see more with '\''--help'\'')]' \
 '-V[Print version]' \
 '--version[Print version]' \
-'*::add_sub_dirs -- Additional submission directories (if you read this with -h, use --help for full docs):_default' \
+'::add_sub_dirs -- Additional submission directories (if you read this with -h, use --help for full docs):_default' \
+'::jplag_args -- Will be passed directly to jplag as arguments:_default' \
+":: :_jplag_wrapper_commands" \
+"*::: :->jplag_wrapper" \
 && ret=0
+    case $state in
+    (jplag_wrapper)
+        words=($line[3] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:jplag_wrapper-command-$line[3]:"
+        case $line[3] in
+            (complete)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+':shell -- The shell to generate completions for:(bash elvish fish powershell zsh)' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_jplag_wrapper__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:jplag_wrapper-help-command-$line[1]:"
+        case $line[1] in
+            (complete)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
 }
 
 (( $+functions[_jplag_wrapper_commands] )) ||
 _jplag_wrapper_commands() {
-    local commands; commands=()
+    local commands; commands=(
+'complete:' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
     _describe -t commands 'jplag_wrapper commands' commands "$@"
+}
+(( $+functions[_jplag_wrapper__complete_commands] )) ||
+_jplag_wrapper__complete_commands() {
+    local commands; commands=()
+    _describe -t commands 'jplag_wrapper complete commands' commands "$@"
+}
+(( $+functions[_jplag_wrapper__help_commands] )) ||
+_jplag_wrapper__help_commands() {
+    local commands; commands=(
+'complete:' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'jplag_wrapper help commands' commands "$@"
+}
+(( $+functions[_jplag_wrapper__help__complete_commands] )) ||
+_jplag_wrapper__help__complete_commands() {
+    local commands; commands=()
+    _describe -t commands 'jplag_wrapper help complete commands' commands "$@"
+}
+(( $+functions[_jplag_wrapper__help__help_commands] )) ||
+_jplag_wrapper__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'jplag_wrapper help help commands' commands "$@"
 }
 
 if [ "$funcstack[1]" = "_jplag_wrapper" ]; then

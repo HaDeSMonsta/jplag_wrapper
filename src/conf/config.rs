@@ -1,5 +1,5 @@
-use crate::conf::args::Args;
-use clap::Parser;
+use crate::conf::args::{Args, Cmd};
+use clap::{CommandFactory, Parser};
 use color_eyre::Result;
 use color_eyre::eyre::{Context, bail};
 use serde::{Deserialize, Serialize};
@@ -57,6 +57,12 @@ struct Config {
 /// jplag_jar, jplag_args, additional_submission_dirs)`
 #[instrument]
 pub fn parse_args() -> Result<ParsedArgs> {
+    debug!("checking completions");
+    if let Some(Cmd::Complete { shell }) = ARGS.cmd() {
+        let mut cmd = Args::command();
+        clap_complete::generate(*shell, &mut cmd, crate::PROGRAM_NAME, &mut io::stdout());
+        exit(0);
+    }
     debug!("getting args");
     if ARGS.init() {
         debug!("initializing config");

@@ -43,6 +43,24 @@ Register-ArgumentCompleter -Native -CommandName 'jplag_wrapper' -ScriptBlock {
             [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             [CompletionResult]::new('-V', '-V ', [CompletionResultType]::ParameterName, 'Print version')
             [CompletionResult]::new('--version', '--version', [CompletionResultType]::ParameterName, 'Print version')
+            [CompletionResult]::new('complete', 'complete', [CompletionResultType]::ParameterValue, 'complete')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'jplag_wrapper;complete' {
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help')
+            break
+        }
+        'jplag_wrapper;help' {
+            [CompletionResult]::new('complete', 'complete', [CompletionResultType]::ParameterValue, 'complete')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'jplag_wrapper;help;complete' {
+            break
+        }
+        'jplag_wrapper;help;help' {
             break
         }
     })

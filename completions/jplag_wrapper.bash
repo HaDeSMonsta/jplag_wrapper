@@ -16,6 +16,18 @@ _jplag_wrapper() {
             ",$1")
                 cmd="jplag_wrapper"
                 ;;
+            jplag_wrapper,complete)
+                cmd="jplag_wrapper__complete"
+                ;;
+            jplag_wrapper,help)
+                cmd="jplag_wrapper__help"
+                ;;
+            jplag_wrapper__help,complete)
+                cmd="jplag_wrapper__help__complete"
+                ;;
+            jplag_wrapper__help,help)
+                cmd="jplag_wrapper__help__help"
+                ;;
             *)
                 ;;
         esac
@@ -23,7 +35,7 @@ _jplag_wrapper() {
 
     case "${cmd}" in
         jplag_wrapper)
-            opts="-l -c -s -t -p -i -j -h -V --init --log-level --abort-on-err --config --source-zip --target-dir --tmp-dir --preserve-tmp-dir --ignore-file --ignore-output --jplag-jar --help --version [ADD_SUB_DIRS]... [JPLAG_ARGS]..."
+            opts="-l -c -s -t -p -i -j -h -V --init --log-level --abort-on-err --config --source-zip --target-dir --tmp-dir --preserve-tmp-dir --ignore-file --ignore-output --jplag-jar --help --version [ADD_SUB_DIRS]... [JPLAG_ARGS]... complete help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -81,6 +93,62 @@ _jplag_wrapper() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        jplag_wrapper__complete)
+            opts="-h --help bash elvish fish powershell zsh"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        jplag_wrapper__help)
+            opts="complete help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        jplag_wrapper__help__complete)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        jplag_wrapper__help__help)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
                 *)
                     COMPREPLY=()
                     ;;
