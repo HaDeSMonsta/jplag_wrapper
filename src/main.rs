@@ -15,12 +15,12 @@ mod helper;
 mod macros;
 
 use crate::conf::config::ARGS;
-use color_eyre::eyre::{Context, anyhow, bail};
+use color_eyre::eyre::{Context, ContextCompat, anyhow, bail};
 use color_eyre::{Report, Result};
 use conf::config;
 use std::fmt::Debug;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 use std::time::Instant;
 use std::{env, thread};
@@ -421,20 +421,23 @@ fn run(result_dir: &str, jplag_jar: &str, jplag_args: &Vec<String>) -> Result<()
         let current_dir = env::current_dir().context("unable to get current dir")?;
         let result_dir = current_dir.join(result_dir);
 
-        let mut result_file = PathBuf::from(format!(
-            "something went wrong, \
-            there seems to be no result in {result_dir:?}"
-        ));
+        let mut result_file = None;
 
         // This dir should only contain exactly one file
         for file in fs::read_dir(&result_dir)
             .with_context(|| format!("unable to read result dir {result_dir:?}"))?
         {
             let file = file.with_context(|| format!("invalid file in {result_dir:?}"))?;
-            result_file = file.path();
+            if let Some(prev) = result_file {
+                bail!("more than one file in {result_dir:?}: first = {prev:?}, second = {file:?}");
+            }
+            result_file = Some(file.path());
         }
 
+        let result_file =
+            result_file.with_context(|| format!("no result file in {result_dir:?}"))?;
         info!("the results are also saved in {result_file:?}");
+
         Ok(())
     } else {
         warn!("command failed, {status}");
