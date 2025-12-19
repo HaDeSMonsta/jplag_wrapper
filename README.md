@@ -4,7 +4,9 @@ This is a wrapper for the [jplag plagiarism detection tool.](https://github.com/
 
 # Prerequisites
 
-- [jplag v6.2.0](https://github.com/jplag/JPlag/releases/tag/v6.2.0) or higher (we depend on `--encoding`)
+- [jplag v6.3.0](https://github.com/jplag/JPlag/releases/tag/v6.3.0) or higher (we depend on `--encoding` (v6.2.0) and
+  `--skip-version-check` (v6.3.0))
+    - Technically v6.2.0 would work if you override the args
 - java
 - basic command line knowledge
 - a zip file with submissions

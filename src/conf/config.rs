@@ -142,6 +142,7 @@ pub fn parse_args() -> Result<ParsedArgs> {
                 String::from(DEFAULT_JAVA_VERSION),
                 String::from("--encoding"),
                 String::from("utf-8"),
+                String::from("--skip-version-check"),
             ]
         });
         jplag_args.append(&mut to_append);
@@ -260,6 +261,7 @@ fn dump_default_config() -> Result<()> {
             String::from(DEFAULT_JAVA_VERSION),
             String::from("--encoding"),
             String::from("utf-8"),
+            String::from("--skip-version-check"),
         ]),
     };
     debug!("created default config struct");
