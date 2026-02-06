@@ -67,7 +67,9 @@ where
         let span = span!(Level::DEBUG, "processing_file", file_name = %file.name());
         let _guard = span.enter();
 
-        let out_path = dest.as_ref().join(file.enclosed_name().unwrap());
+        let out_path = dest.as_ref().join(file.enclosed_name().with_context(|| {
+            format!("unable to get enclosed name for file {i} (malformed zip file?)")
+        })?);
 
         trace!("set out path: {out_path:?}");
 
@@ -75,7 +77,7 @@ where
             fs::create_dir_all(&out_path)
                 .with_context(|| format!("unable to create out dir: {out_path:?}"))?;
             trace!("created out_path");
-        } else {
+        } else if file.is_file() {
             if let Some(parent) = out_path.parent()
                 && !parent.exists()
             {
@@ -97,6 +99,13 @@ where
                 format!("unable to io copy {src} to {out_file:?}", src = file.name())
             })?;
             trace!("io copied {src} to {out_file:?}", src = file.name());
+        } else if file.is_symlink() {
+            warn!("symlink not supported, skipping");
+        } else {
+            unreachable!(
+                "unknown file type, this should never happen; enclosed name: {:?}",
+                file.enclosed_name()
+            );
         }
     }
 

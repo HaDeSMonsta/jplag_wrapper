@@ -7,7 +7,6 @@ use flate2::read::GzDecoder;
 use std::fmt::Debug;
 use std::fs;
 use std::fs::File;
-use std::hint::unreachable_unchecked;
 use std::io::BufReader;
 use std::path::Path;
 use tracing::{debug, instrument, trace};
@@ -217,7 +216,5 @@ where
     Q: AsRef<Path> + Debug,
     R: AsRef<Path> + Debug,
 {
-    unsafe {
-        unreachable_unchecked();
-    }
+    unreachable!("dummy function called");
 }
