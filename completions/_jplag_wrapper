@@ -57,7 +57,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (help)
 _arguments "${_arguments_options[@]}" : \
-":: :_jplag_wrapper__help_commands" \
+":: :_jplag_wrapper__subcmd__help_commands" \
 "*::: :->help" \
 && ret=0
 
@@ -92,26 +92,26 @@ _jplag_wrapper_commands() {
     )
     _describe -t commands 'jplag_wrapper commands' commands "$@"
 }
-(( $+functions[_jplag_wrapper__complete_commands] )) ||
-_jplag_wrapper__complete_commands() {
+(( $+functions[_jplag_wrapper__subcmd__complete_commands] )) ||
+_jplag_wrapper__subcmd__complete_commands() {
     local commands; commands=()
     _describe -t commands 'jplag_wrapper complete commands' commands "$@"
 }
-(( $+functions[_jplag_wrapper__help_commands] )) ||
-_jplag_wrapper__help_commands() {
+(( $+functions[_jplag_wrapper__subcmd__help_commands] )) ||
+_jplag_wrapper__subcmd__help_commands() {
     local commands; commands=(
 'complete:' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'jplag_wrapper help commands' commands "$@"
 }
-(( $+functions[_jplag_wrapper__help__complete_commands] )) ||
-_jplag_wrapper__help__complete_commands() {
+(( $+functions[_jplag_wrapper__subcmd__help__subcmd__complete_commands] )) ||
+_jplag_wrapper__subcmd__help__subcmd__complete_commands() {
     local commands; commands=()
     _describe -t commands 'jplag_wrapper help complete commands' commands "$@"
 }
-(( $+functions[_jplag_wrapper__help__help_commands] )) ||
-_jplag_wrapper__help__help_commands() {
+(( $+functions[_jplag_wrapper__subcmd__help__subcmd__help_commands] )) ||
+_jplag_wrapper__subcmd__help__subcmd__help_commands() {
     local commands; commands=()
     _describe -t commands 'jplag_wrapper help help commands' commands "$@"
 }

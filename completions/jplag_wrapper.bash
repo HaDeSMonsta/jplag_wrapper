@@ -17,16 +17,16 @@ _jplag_wrapper() {
                 cmd="jplag_wrapper"
                 ;;
             jplag_wrapper,complete)
-                cmd="jplag_wrapper__complete"
+                cmd="jplag_wrapper__subcmd__complete"
                 ;;
             jplag_wrapper,help)
-                cmd="jplag_wrapper__help"
+                cmd="jplag_wrapper__subcmd__help"
                 ;;
-            jplag_wrapper__help,complete)
-                cmd="jplag_wrapper__help__complete"
+            jplag_wrapper__subcmd__help,complete)
+                cmd="jplag_wrapper__subcmd__help__subcmd__complete"
                 ;;
-            jplag_wrapper__help,help)
-                cmd="jplag_wrapper__help__help"
+            jplag_wrapper__subcmd__help,help)
+                cmd="jplag_wrapper__subcmd__help__subcmd__help"
                 ;;
             *)
                 ;;
@@ -100,7 +100,7 @@ _jplag_wrapper() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        jplag_wrapper__complete)
+        jplag_wrapper__subcmd__complete)
             opts="-h --help bash elvish fish powershell zsh"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -114,7 +114,7 @@ _jplag_wrapper() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        jplag_wrapper__help)
+        jplag_wrapper__subcmd__help)
             opts="complete help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -128,7 +128,7 @@ _jplag_wrapper() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        jplag_wrapper__help__complete)
+        jplag_wrapper__subcmd__help__subcmd__complete)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -142,7 +142,7 @@ _jplag_wrapper() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        jplag_wrapper__help__help)
+        jplag_wrapper__subcmd__help__subcmd__help)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )

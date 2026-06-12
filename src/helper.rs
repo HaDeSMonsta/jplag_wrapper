@@ -64,7 +64,8 @@ where
                 (should be impossible, as we iterate over len, len = {archive_len})"
             )
         })?;
-        let span = span!(Level::DEBUG, "processing_file", file_name = %file.name());
+        let file_name = file.name().context("failed to get filename")?.to_string();
+        let span = span!(Level::DEBUG, "processing_file", %file_name);
         let _guard = span.enter();
 
         let out_path = dest.as_ref().join(file.enclosed_name().with_context(|| {
@@ -96,9 +97,9 @@ where
             trace!("created/opened out_file {out_file:?}");
 
             io::copy(&mut file, &mut out_file).with_context(|| {
-                format!("unable to io copy {src} to {out_file:?}", src = file.name())
+                format!("unable to io copy {src} to {out_file:?}", src = file_name)
             })?;
-            trace!("io copied {src} to {out_file:?}", src = file.name());
+            trace!("io copied {src} to {out_file:?}", src = file_name);
         } else if file.is_symlink() {
             warn!("symlink not supported, skipping");
         } else {
