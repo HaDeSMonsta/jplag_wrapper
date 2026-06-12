@@ -6,18 +6,22 @@ SOURCES := $(shell find src -name '*.rs') Cargo.toml Cargo.lock
 # Why a Makefile? Because `cargo run --release` redoes LTO every time
 
 .PHONY: default
-default: build release
-
-.PHONY: check
-check: $(REL_BIN)
-	$(REL_BIN)
+default: debug release
 
 .PHONY: run
-run: $(DBG_BIN)
+run: $(REL_BIN)
+	$(REL_BIN)
+
+.PHONY: run-debug
+run-debug: $(DBG_BIN)
 	$(DBG_BIN)
 
-.PHONY: build
-build: $(DBG_BIN)
+.PHONY: check
+check:
+	cargo check
+
+.PHONY: debug
+debug: $(DBG_BIN)
 
 .PHONY: release
 release: $(REL_BIN)
